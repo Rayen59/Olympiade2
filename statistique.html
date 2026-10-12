@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-FS9YCCEDT9"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-FS9YCCEDT9');
+</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Problem Statistics and Feedback</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            color: #333;
+            text-align: center;
+        }
+
+        .card:nth-child(odd) {
+            background-color: #e9f5ff;
+        }
+
+        .card:nth-child(even) {
+            background-color: #f5ffe9;
+        }
+
+        .card h2 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .count {
+            font-size: 48px;
+            font-weight: bold;
+            color: #007bff;
+            margin: 10px 0;
+        }
+
+        .feedback {
+            margin-top: 30px;
+            padding: 20px;
+            background: #e9ecef;
+            border-radius: 8px;
+        }
+
+        .feedback h2 {
+            color: #333;
+        }
+
+        .feedback p {
+            font-size: 16px;
+            color: #666;
+        }
+
+        .feedback form {
+            margin-top: 20px;
+        }
+
+        .feedback form textarea {
+            width: 100%;
+            height: 100px;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+            resize: vertical;
+        }
+
+        .feedback form input[type="file"] {
+            margin: 10px 0;
+        }
+
+        .feedback form button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .feedback form button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Problem Statistics</h1>
+        <div class="grid">
+            <div class="card">
+                <h2>Combinatorics</h2>
+                <div class="count">11</div>
+            </div>
+            <div class="card">
+                <h2>Functional Equations</h2>
+                <div class="count">7</div>
+            </div>
+            <div class="card">
+                <h2>Geometry</h2>
+                <div class="count">9</div>
+            </div>
+            <div class="card">
+                <h2>Number Theory</h2>
+                <div class="count">23</div>
+            </div>
+        </div>
+        <div class="card">
+          <h2>Exercices</h2>
+          <div class="count">13</div>
+      </div>
+  </div>
+
+        <div class="feedback">
+            <h2>Provide Your Feedback</h2>
+            <p>We welcome your feedback on the problems listed above. Please share your critiques or any additional information you might have. You can also provide examples of problems that will be reviewed and possibly featured on our site after the review by Med Rayen Bouazizi.</p>
+            <form action="mailto:rayenbouazizi336@gmail.com" method="post" enctype="multipart/form-data">
+                <textarea name="message" placeholder="Enter your feedback or examples here..."></textarea>
+                <input type="file" name="attachment">
+                <button type="submit">Submit Feedback</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
