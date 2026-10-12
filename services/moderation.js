@@ -46,7 +46,7 @@ export async function moderateForumContent({ title = "", content = "", category 
     try {
       const response = await client.models.generateContent({
         model: "gemini-3.8-flash",
-        contents: `Tu es le modérateur intelligent de la plateforme de mathématiques MK Olympiades (style Art of Problem Solving - AoPS).
+        contents: `Tu es le modérateur intelligent de la plateforme de mathématiques MK Olympiades.
 Examine ce message destiné au forum communautaire (thème : "${category}") :
 
 Titre : ${title || "(sans titre)"}

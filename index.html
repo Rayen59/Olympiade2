@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MK - Art of Problem Solving & Olympiades Mathématiques</title>
-    <meta name="description" content="Plateforme académique MK style AoPS : problèmes classés par thèmes et points (15-75 pts), bloc d'olympiades officielles, cours théoriques, forum LaTeX et classement.">
-    <meta property="og:title" content="MK - Olympiades Mathématiques">
-    <meta property="og:description" content="Plateforme d'olympiades mathématiques style AoPS : sujets PDF, notation au barème, médailles et cours théoriques.">
+    <title>Mémorial Assil Hamdi pour les Mathématiques Avancées</title>
+    <meta name="description" content="Portail académique commémoratif dédié à Assil Hamdi pour la diffusion des mathématiques pures, olympiades, cours et défis intellectuels.">
+    <meta property="og:title" content="Mémorial Assil Hamdi pour les Mathématiques Avancées">
+    <meta property="og:description" content="Portail académique commémoratif dédié à Assil Hamdi pour la diffusion des mathématiques pures, olympiades, cours et défis intellectuels.">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -84,6 +84,28 @@
             justify-content: space-between;
             flex-wrap: wrap;
             gap: 6px;
+        }
+
+        .nav-back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #334155;
+            padding: 3px 9px;
+            border-radius: 5px;
+            font-size: 11.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .nav-back-btn:hover {
+            background: #e2e8f0;
+            color: var(--primary);
+            border-color: var(--primary-border);
+            transform: translateX(-1px);
         }
 
         .brand-logo {
@@ -395,17 +417,6 @@
             overflow-x: auto;
         }
 
-        .problem-hint {
-            font-size: 12px;
-            color: #64748b;
-            background: #fffbeb;
-            border: 1px dashed #fcd34d;
-            padding: 8px 12px;
-            border-radius: 5px;
-            margin-bottom: 12px;
-            display: none;
-        }
-
         .problem-actions {
             display: flex;
             align-items: center;
@@ -414,17 +425,6 @@
             margin-top: 10px;
             border-top: 1px solid var(--border-color);
             padding-top: 10px;
-        }
-
-        .btn-hint {
-            background: transparent;
-            color: #64748b;
-            border: 1px solid var(--border-color);
-            padding: 4px 10px;
-            border-radius: 5px;
-            font-size: 11.5px;
-            font-weight: 600;
-            cursor: pointer;
         }
 
         .btn-submit-problem {
@@ -849,11 +849,19 @@
     <!-- COMPACT SLIM TOP NAVIGATION -->
     <header class="top-nav">
         <div class="nav-container">
-            <div class="brand-logo" onclick="switchTab('problems')">
-                <div class="brand-badge">MK</div>
-                <div class="brand-title">
-                    <span class="brand-name">MK Olympiades</span>
-                    <span class="brand-sub">AoPS</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button class="nav-back-btn" onclick="handleAppBack()" title="Revenir en arrière" aria-label="Revenir en arrière">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    <span>Retour</span>
+                </button>
+                <div class="brand-logo" onclick="switchTab('problems')">
+                    <div class="brand-badge">MK</div>
+                    <div class="brand-title">
+                        <span class="brand-name">MK Olympiades</span>
+                    </div>
                 </div>
             </div>
 
@@ -1117,30 +1125,31 @@
 
     <!-- 1. MANDATORY AUTH MODAL -->
     <div id="authModal" class="modal-overlay">
-        <div class="modal-card" style="max-width: 420px;">
+        <div class="modal-card" style="max-width: 420px; position: relative;">
+            <button class="modal-close-btn" onclick="closeAuthModal(true)" title="Fermer">&times;</button>
             <div style="text-align: center; margin-bottom: 18px;">
                 <div class="brand-badge" style="display: inline-block; margin-bottom: 8px;">MK</div>
-                <h2 class="modal-title" id="authModalTitle">Créer un Compte Obligatoire</h2>
-                <p class="modal-desc" id="authModalDesc">L'accès à la plateforme MK nécessite obligatoirement un compte individuel. Un e-mail ne peut servir qu'une seule fois.</p>
+                <h2 class="modal-title" id="authModalTitle">Créer un Compte</h2>
+                <p class="modal-desc" id="authModalDesc">L'accès complet à la plateforme MK nécessite un compte individuel.</p>
             </div>
 
             <div style="display: flex; background: #f1f5f9; padding: 3px; border-radius: 6px; margin-bottom: 16px;">
-                <button id="authTabRegister" class="pill-btn active" style="flex: 1; border-radius: 4px;" onclick="switchAuthMode('register')">Inscription</button>
-                <button id="authTabLogin" class="pill-btn" style="flex: 1; border-radius: 4px;" onclick="switchAuthMode('login')">Connexion</button>
+                <button type="button" id="authTabRegister" class="pill-btn active" style="flex: 1; border-radius: 4px;" onclick="switchAuthMode('register')">Inscription</button>
+                <button type="button" id="authTabLogin" class="pill-btn" style="flex: 1; border-radius: 4px;" onclick="switchAuthMode('login')">Connexion</button>
             </div>
 
             <form id="authForm" onsubmit="handleAuthSubmit(event)">
                 <div class="form-group" id="authUsernameGroup">
                     <label class="form-label">Nom d'utilisateur / Pseudo Olympique *</label>
-                    <input type="text" id="authUsername" class="form-input" placeholder="Ex: Jean_Euler" required>
+                    <input type="text" id="authUsername" class="form-input" placeholder="Ex: Jean_Euler">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Adresse E-mail (Unique) *</label>
-                    <input type="email" id="authEmail" class="form-input" placeholder="votre.email@exemple.com" required>
+                    <label class="form-label">Adresse E-mail *</label>
+                    <input type="email" id="authEmail" class="form-input" placeholder="votre.email@exemple.com" required autocomplete="email">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Mot de passe *</label>
-                    <input type="password" id="authPassword" class="form-input" placeholder="••••••••" required>
+                    <input type="password" id="authPassword" class="form-input" placeholder="••••••••" required autocomplete="current-password">
                 </div>
                 <div id="authErrorMsg" style="color: var(--danger); font-size: 12px; font-weight: 600; margin-bottom: 12px; display: none;"></div>
                 <button type="submit" id="authSubmitBtn" class="btn-submit-action" style="width: 100%; padding: 10px;">Valider & Entrer</button>
@@ -1408,8 +1417,16 @@
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        // ---------------- TAB NAVIGATION ----------------
-        function switchTab(tabId) {
+        // ---------------- TAB NAVIGATION & BACK HISTORY ----------------
+        let currentTabId = 'problems';
+        const tabHistory = [];
+
+        function switchTab(tabId, pushHistory = true) {
+            if (pushHistory && currentTabId && currentTabId !== tabId) {
+                tabHistory.push(currentTabId);
+            }
+            currentTabId = tabId;
+
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
 
@@ -1421,6 +1438,8 @@
 
             if (tabId === 'olympiads') {
                 loadOlympiads();
+            } else if (tabId === 'courses') {
+                loadCourses();
             } else if (tabId === 'forum') {
                 loadForumTopics();
             } else if (tabId === 'leaderboard') {
@@ -1434,6 +1453,44 @@
             }
 
             setTimeout(renderAllMath, 50);
+        }
+
+        function handleAppBack() {
+            // 1. Close any active modal
+            const activeModal = document.querySelector('.modal-overlay.active');
+            if (activeModal) {
+                activeModal.classList.remove('active');
+                return;
+            }
+
+            // 2. If viewing a forum topic, back to forum list
+            const forumDetail = document.getElementById('forumTopicDetail');
+            if (forumDetail && forumDetail.style.display !== 'none' && currentTabId === 'forum') {
+                backToTopicsList();
+                return;
+            }
+
+            // 3. Tab history stack
+            if (tabHistory.length > 0) {
+                const prev = tabHistory.pop();
+                switchTab(prev, false);
+                return;
+            }
+
+            // 4. If on another tab, return to problems
+            if (currentTabId !== 'problems') {
+                switchTab('problems', false);
+                return;
+            }
+
+            // 5. Fallback browser history
+            if (document.referrer && document.referrer.indexOf(window.location.host) !== -1) {
+                window.location.href = document.referrer;
+            } else if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = '/';
+            }
         }
 
         // ---------------- AUTHENTICATION ----------------
@@ -1564,8 +1621,7 @@
             document.getElementById('authModal').classList.add('active');
         }
 
-        function closeAuthModal() {
-            if (!currentUser) return;
+        function closeAuthModal(force = false) {
             document.getElementById('authModal').classList.remove('active');
         }
 
@@ -1576,34 +1632,59 @@
             const title = document.getElementById('authModalTitle');
             const desc = document.getElementById('authModalDesc');
             const userGrp = document.getElementById('authUsernameGroup');
+            const userInput = document.getElementById('authUsername');
             const submitBtn = document.getElementById('authSubmitBtn');
             const errBox = document.getElementById('authErrorMsg');
-            errBox.style.display = 'none';
+            if (errBox) errBox.style.display = 'none';
 
             if (mode === 'register') {
                 regTab.classList.add('active');
                 logTab.classList.remove('active');
-                title.textContent = "Créer un Compte Obligatoire";
-                desc.textContent = "L'accès à la plateforme MK nécessite obligatoirement un compte individuel. Un e-mail ne peut servir qu'une seule fois.";
+                title.textContent = "Créer un Compte";
+                desc.textContent = "L'accès complet à la plateforme MK nécessite un compte individuel.";
                 userGrp.style.display = 'block';
+                if (userInput) userInput.required = true;
                 submitBtn.textContent = "Créer mon Compte";
             } else {
                 logTab.classList.add('active');
                 regTab.classList.remove('active');
                 title.textContent = "Connexion à votre Compte";
-                desc.textContent = "Entrez vos identifiants pour accéder à vos points et à l'olympiade.";
+                desc.textContent = "Entrez vos identifiants pour accéder à votre espace.";
                 userGrp.style.display = 'none';
+                if (userInput) {
+                    userInput.required = false;
+                    userInput.value = '';
+                }
                 submitBtn.textContent = "Se Connecter";
             }
         }
 
         async function handleAuthSubmit(e) {
-            e.preventDefault();
-            const email = document.getElementById('authEmail').value.trim();
-            const password = document.getElementById('authPassword').value;
-            const username = document.getElementById('authUsername').value.trim();
+            if (e) e.preventDefault();
+            const emailInput = document.getElementById('authEmail');
+            const passwordInput = document.getElementById('authPassword');
+            const usernameInput = document.getElementById('authUsername');
+            const email = (emailInput ? emailInput.value : '').trim();
+            const password = passwordInput ? passwordInput.value : '';
+            const username = (usernameInput ? usernameInput.value : '').trim();
             const errBox = document.getElementById('authErrorMsg');
-            errBox.style.display = 'none';
+            if (errBox) errBox.style.display = 'none';
+
+            if (!email || !password) {
+                if (errBox) {
+                    errBox.textContent = "Veuillez renseigner votre email et votre mot de passe.";
+                    errBox.style.display = 'block';
+                }
+                return;
+            }
+
+            if (authMode === 'register' && !username) {
+                if (errBox) {
+                    errBox.textContent = "Veuillez renseigner un pseudo ou nom d'utilisateur.";
+                    errBox.style.display = 'block';
+                }
+                return;
+            }
 
             const endpoint = authMode === 'register' ? '/api/auth/register' : '/api/auth/login';
             const body = authMode === 'register' ? { username, email, password } : { email, password };
@@ -1616,18 +1697,30 @@
                 });
                 const data = await res.json();
                 if (!res.ok) {
-                    errBox.textContent = data.error || "Erreur d'authentification.";
-                    errBox.style.display = 'block';
+                    if (errBox) {
+                        errBox.textContent = data.error || "Identifiants incorrects ou erreur de compte.";
+                        errBox.style.display = 'block';
+                    }
                     return;
                 }
 
                 setUserSession(data.user);
                 showToast(`Bienvenue ${data.user.username} !`);
+
+                if (data.user.role === 'admin') {
+                    showToast("Connecté avec succès au panneau Administrateur.");
+                    switchTab('admin');
+                } else {
+                    switchTab('problems');
+                }
+
                 await loadProblems();
                 await loadOlympiads();
             } catch (err) {
-                errBox.textContent = "Erreur de connexion.";
-                errBox.style.display = 'block';
+                if (errBox) {
+                    errBox.textContent = "Erreur de connexion au serveur.";
+                    errBox.style.display = 'block';
+                }
             }
         }
 
@@ -1714,11 +1807,9 @@
                                 </div>
                                 <h3 class="problem-title">${escapeHtml(p.title)}</h3>
                                 <div class="problem-statement">${escapeHtml(p.statement)}</div>
-                                <div class="problem-hint" id="hint-${p.id}">💡 <strong>Indice :</strong> ${escapeHtml(p.hint || 'Développez les factorisations.')}</div>
                             </div>
                             
-                            <div class="problem-actions">
-                                <button class="btn-hint" onclick="toggleHint('${p.id}')">💡 Indice</button>
+                            <div class="problem-actions" style="justify-content: flex-end;">
                                 <div style="display: flex; align-items: center; gap: 6px;">
                                     ${isSolved ? `<span class="status-badge solved">✓ Validé</span>` : ''}
                                     <button class="btn-submit-problem" onclick="openSubmitSolutionModal('${p.id}')">
@@ -1733,13 +1824,6 @@
 
             container.innerHTML = html;
             renderAllMath();
-        }
-
-        function toggleHint(problemId) {
-            const hintEl = document.getElementById('hint-' + problemId);
-            if (hintEl) {
-                hintEl.style.display = hintEl.style.display === 'block' ? 'none' : 'block';
-            }
         }
 
         function openSubmitSolutionModal(problemId) {
