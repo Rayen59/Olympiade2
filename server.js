@@ -242,9 +242,32 @@ app.get('/api/problems/:id', (req, res) => {
   res.json({ problem });
 });
 
+// Candidate retrieves their own submission for a specific problem
+app.get('/api/problems/:id/my-submission', (req, res) => {
+  const userId = req.headers['x-user-id'];
+  if (!userId) return res.json({ submission: null });
+
+  const store = loadStore();
+  const sub = (store.submissions || []).find(s => s.problemId === req.params.id && s.userId === userId);
+  if (!sub) return res.json({ submission: null });
+
+  const prob = (store.problems || []).find(p => p.id === req.params.id);
+  const images = sub.images && sub.images.length > 0 ? sub.images : (sub.imageUrl ? [sub.imageUrl] : []);
+
+  res.json({
+    submission: {
+      ...sub,
+      images,
+      imageUrl: images[0] || "",
+      problemStatement: prob ? prob.statement : ""
+    }
+  });
+});
+
+// Candidate submits multiple polycopies / images and solution text
 app.post('/api/problems/:id/submit', (req, res) => {
   const userId = req.headers['x-user-id'];
-  const { imageUrl, solutionText } = req.body;
+  const { imageUrl, images: rawImages, solutionText } = req.body;
   if (!userId) {
     return res.status(401).json({ error: "Connexion requise pour soumettre un problème." });
   }
@@ -261,15 +284,46 @@ app.post('/api/problems/:id/submit', (req, res) => {
     });
   }
 
-  if (!imageUrl) {
+  let images = [];
+  if (Array.isArray(rawImages) && rawImages.length > 0) {
+    images = rawImages.filter(img => typeof img === 'string' && img.trim().length > 0);
+  } else if (imageUrl && typeof imageUrl === 'string' && imageUrl.trim().length > 0) {
+    images = [imageUrl.trim()];
+  }
+
+  if (images.length === 0) {
     return res.status(400).json({ 
-      error: "Une photo ou image de votre solution manuscrite rédigée est obligatoire. Elle doit être claire et lisible." 
+      error: "Veuillez joindre au moins une photo ou polycopie claire de votre solution rédigée." 
     });
   }
 
   const problem = (store.problems || []).find(p => p.id === req.params.id);
   if (!problem) {
     return res.status(404).json({ error: "Problème non trouvé." });
+  }
+
+  // Check if candidate already has an existing submission for this problem
+  const existingSub = (store.submissions || []).find(s => s.problemId === problem.id && s.userId === user.id);
+  if (existingSub) {
+    // Condition: Si l'admin a déjà examiné la soumission (non pending), l'ajout d'images n'est permis que si la soumission est vrai (approved)
+    const isAdminReviewed = existingSub.status !== 'pending' || Boolean(existingSub.reviewedAt);
+    if (isAdminReviewed && existingSub.status !== 'approved') {
+      return res.status(403).json({
+        error: "L'administrateur a déjà examiné cette copie (non validée). L'ajout ou le remplacement de pages n'est autorisé que si la soumission est validée (vraie)."
+      });
+    }
+
+    existingSub.images = images;
+    existingSub.imageUrl = images[0] || "";
+    existingSub.solutionText = solutionText !== undefined ? solutionText : existingSub.solutionText;
+    existingSub.updatedAt = new Date().toISOString();
+
+    saveStore();
+    return res.json({
+      success: true,
+      message: "Votre soumission et vos polycopies ont été mises à jour avec succès !",
+      submission: existingSub
+    });
   }
 
   const submission = {
@@ -281,7 +335,8 @@ app.post('/api/problems/:id/submit', (req, res) => {
     userId: user.id,
     username: user.username,
     userEmail: user.email,
-    imageUrl,
+    images: images,
+    imageUrl: images[0] || "",
     solutionText: solutionText || "",
     status: "pending",
     reviewReason: null,
@@ -294,8 +349,98 @@ app.post('/api/problems/:id/submit', (req, res) => {
 
   res.status(201).json({ 
     success: true, 
-    message: "Votre solution a été soumise avec succès. L'administrateur examinera votre copie rédigée par catégorie.",
+    message: "Votre solution a été soumise avec succès ! L'administrateur examinera vos polycopies.",
     submission 
+  });
+});
+
+// Candidate modifies their existing submission (add / remove polycopies, update text)
+app.put('/api/submissions/:id', (req, res) => {
+  const userId = req.headers['x-user-id'];
+  if (!userId) return res.status(401).json({ error: "Non connecté" });
+
+  const store = loadStore();
+  const sub = (store.submissions || []).find(s => s.id === req.params.id);
+  if (!sub) return res.status(404).json({ error: "Soumission introuvable" });
+
+  const user = store.users.find(u => u.id === userId);
+  const isOwner = sub.userId === userId;
+  const isAdmin = user && user.role === 'admin';
+
+  if (!isOwner && !isAdmin) {
+    return res.status(403).json({ error: "Action non autorisée" });
+  }
+
+  const { images, solutionText, newImages } = req.body;
+
+  // Enforce rule: if admin has reviewed the submission, user can only add images if the submission is 'approved' (vrai)
+  const isAdminReviewed = sub.status !== 'pending' || Boolean(sub.reviewedAt);
+  const currentCount = (sub.images || (sub.imageUrl ? [sub.imageUrl] : [])).length;
+  const nextImages = Array.isArray(images) ? images : (sub.images || []);
+  const addedImagesCount = (Array.isArray(newImages) ? newImages.length : 0) + (nextImages.length > currentCount ? nextImages.length - currentCount : 0);
+
+  if (!isAdmin && isAdminReviewed && addedImagesCount > 0 && sub.status !== 'approved') {
+    return res.status(403).json({
+      error: "L'administrateur a déjà examiné cette copie. Vous ne pouvez ajouter des polycopies/images que si votre soumission est validée (vraie)."
+    });
+  }
+
+  if (Array.isArray(images)) {
+    if (images.length === 0) {
+      return res.status(400).json({ error: "Une soumission doit comporter au moins une polycopie / page manuscrite." });
+    }
+    sub.images = images;
+    sub.imageUrl = images[0] || "";
+  }
+
+  if (solutionText !== undefined) {
+    sub.solutionText = solutionText;
+  }
+
+  sub.updatedAt = new Date().toISOString();
+  saveStore();
+
+  res.json({
+    success: true,
+    message: "Soumission mise à jour avec succès !",
+    submission: sub
+  });
+});
+
+// Candidate or Admin deletes a submission
+app.delete('/api/submissions/:id', (req, res) => {
+  const userId = req.headers['x-user-id'];
+  if (!userId) return res.status(401).json({ error: "Non connecté" });
+
+  const store = loadStore();
+  const subIndex = (store.submissions || []).findIndex(s => s.id === req.params.id);
+  if (subIndex === -1) return res.status(404).json({ error: "Soumission introuvable" });
+
+  const sub = store.submissions[subIndex];
+  const user = store.users.find(u => u.id === userId);
+  const isOwner = sub.userId === userId;
+  const isAdmin = user && user.role === 'admin';
+
+  if (!isOwner && !isAdmin) {
+    return res.status(403).json({ error: "Action non autorisée" });
+  }
+
+  // If the submission was approved, revert the user's score and solved status
+  if (sub.status === 'approved') {
+    const candidateUser = store.users.find(u => u.id === sub.userId);
+    if (candidateUser) {
+      candidateUser.points = Math.max(0, candidateUser.points - (sub.points || 0));
+      candidateUser.solvedProblems = (candidateUser.solvedProblems || []).filter(pid => pid !== sub.problemId);
+      candidateUser.solvedCount = candidateUser.solvedProblems.length;
+    }
+  }
+
+  store.submissions.splice(subIndex, 1);
+  saveStore();
+
+  res.json({
+    success: true,
+    message: "Soumission et polycopies supprimées définitivement."
   });
 });
 
@@ -790,14 +935,17 @@ app.get('/api/olympiads/:id/leaderboard', (req, res) => {
 // ---------------- ADMIN SUBMISSIONS (PER CATEGORY & PER USER) ----------------
 app.get('/api/admin/submissions', requireAdmin, (req, res) => {
   const store = loadStore();
-  const { category, userId } = req.query;
+  const { category, userId, status } = req.query;
   let subs = store.submissions || [];
 
   if (category && category !== 'all') {
     subs = subs.filter(s => s.category === category);
   }
   if (userId && userId !== 'all') {
-    subs = subs.filter(s => s.userId === userId);
+    subs = subs.filter(s => s.userId === userId || s.username === userId);
+  }
+  if (status && status !== 'all') {
+    subs = subs.filter(s => s.status === status);
   }
 
   const byCategory = {};
@@ -808,8 +956,26 @@ app.get('/api/admin/submissions', requireAdmin, (req, res) => {
     byUser[s.username] = (byUser[s.username] || 0) + 1;
   });
 
+  // Enrich each submission with full problem statement, title, points, and normalized images
+  const enrichedSubs = subs.map(s => {
+    const prob = (store.problems || []).find(p => p.id === s.problemId);
+    const images = (s.images && Array.isArray(s.images) && s.images.length > 0) 
+      ? s.images 
+      : (s.imageUrl ? [s.imageUrl] : []);
+
+    return {
+      ...s,
+      images,
+      imageUrl: images[0] || "",
+      problemTitle: prob ? prob.title : (s.problemTitle || "Problème"),
+      problemStatement: prob ? prob.statement : "Énoncé non disponible.",
+      problemTheme: prob ? prob.theme : (s.category || "Olympiade"),
+      problemPoints: prob ? prob.points : (s.points || 0)
+    };
+  });
+
   res.json({
-    submissions: subs,
+    submissions: enrichedSubs,
     stats: {
       total: (store.submissions || []).length,
       pending: (store.submissions || []).filter(s => s.status === 'pending').length,

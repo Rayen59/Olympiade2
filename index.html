@@ -842,6 +842,156 @@
             z-index: 2000;
         }
         .toast-banner.show { display: block; }
+
+        /* POLYCOPIES & PREVIEWS */
+        .polycope-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .polycope-item {
+            position: relative;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .polycope-item img {
+            width: 100%;
+            height: 90px;
+            object-fit: cover;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .polycope-item img:hover {
+            transform: scale(1.04);
+        }
+        .polycope-badge {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            background: rgba(15, 23, 42, 0.85);
+            color: #fff;
+            font-size: 9.5px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+        .polycope-delete-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            transition: background 0.15s;
+        }
+        .polycope-delete-btn:hover {
+            background: #dc2626;
+        }
+        .latex-preview-pane {
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 12px;
+            min-height: 80px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--text-main);
+            overflow-x: auto;
+        }
+        .preview-toggle-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            gap: 8px;
+        }
+        .btn-toggle-preview {
+            background: #eff6ff;
+            color: var(--primary);
+            border: 1px solid var(--primary-border);
+            padding: 3px 10px;
+            border-radius: 14px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.15s;
+        }
+        .btn-toggle-preview:hover {
+            background: #dbeafe;
+            border-color: var(--primary);
+        }
+        .remember-problem-box {
+            background: #f0f7ff;
+            border: 1px solid #bfdbfe;
+            border-left: 4px solid var(--primary);
+            border-radius: 6px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+        }
+        .remember-problem-title {
+            font-size: 12.5px;
+            font-weight: 800;
+            color: var(--primary-dark);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .remember-problem-body {
+            font-size: 12px;
+            color: #334155;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+        .admin-sub-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-sm);
+            transition: border-color 0.2s;
+        }
+        .admin-sub-card:hover {
+            border-color: #cbd5e1;
+        }
+        .admin-sub-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .admin-candidate-meta {
+            font-size: 11.5px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -1051,9 +1201,18 @@
                 </div>
             </div>
 
-            <!-- Admin Sub-tab 2: Regular Problem Submissions -->
+            <!-- Admin Sub-tab 2: Regular Problem Submissions (Organized with Problem Statement Remember & Multi-Polycopies) -->
             <div id="adminRegularView" style="display: none;">
                 <div class="filters-bar">
+                    <div class="filter-group">
+                        <span class="filter-label">Statut :</span>
+                        <select id="adminStatusFilterSelect" class="form-select" style="width: 180px;" onchange="loadAdminSubmissions()">
+                            <option value="all">Tous les statuts</option>
+                            <option value="pending" selected>⏳ En attente de révision</option>
+                            <option value="approved">✅ Validées</option>
+                            <option value="rejected">❌ Refusées</option>
+                        </select>
+                    </div>
                     <div class="filter-group">
                         <span class="filter-label">Catégorie :</span>
                         <select id="adminCategorySelect" class="form-select" style="width: 200px;" onchange="loadAdminSubmissions()">
@@ -1066,12 +1225,15 @@
                         </select>
                     </div>
                     <div class="filter-group">
-                        <span class="filter-label">Utilisateur :</span>
-                        <select id="adminUserFilterSelect" class="form-select" style="width: 200px;" onchange="loadAdminSubmissions()">
-                            <option value="all">Tous les utilisateurs</option>
+                        <span class="filter-label">Candidat :</span>
+                        <select id="adminUserFilterSelect" class="form-select" style="width: 180px;" onchange="loadAdminSubmissions()">
+                            <option value="all">Tous les candidats</option>
                         </select>
                     </div>
                 </div>
+
+                <div id="adminSubmissionsStatsBanner" style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;"></div>
+
                 <div id="adminSubmissionsList"></div>
             </div>
 
@@ -1157,34 +1319,111 @@
         </div>
     </div>
 
-    <!-- 2. SUBMIT REGULAR PROBLEM MODAL -->
+    <!-- 2. SUBMIT REGULAR PROBLEM MODAL (MULTIPLE POLYCOPIES & LATEX PREVIEW) -->
     <div id="submitSolutionModal" class="modal-overlay">
-        <div class="modal-card">
+        <div class="modal-card" style="max-width: 650px;">
             <button class="modal-close-btn" onclick="closeSubmitSolutionModal()">&times;</button>
-            <h2 class="modal-title">Soumettre une Solution Manuscrite</h2>
+            <h2 class="modal-title">Soumettre vos Polycopies & Solution</h2>
             <p class="modal-desc" id="submitModalSubtitle">Problème sélectionné</p>
-            <div id="submitModalStatement" style="background:#f8fafc; border-left:3px solid var(--primary); padding:10px 12px; border-radius:4px; font-size:12.5px; margin-bottom:14px;"></div>
+            <div id="submitModalStatement" class="remember-problem-box" style="margin-bottom: 14px;"></div>
             
+            <!-- Polycopies section -->
             <div class="form-group">
-                <label class="form-label">Photo ou Image de votre copie rédigée *</label>
-                <p style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 6px;">
-                    L'image de la démonstration manuscrite est obligatoire, claire et lisible.
-                </p>
-                <div style="border: 2px dashed #cbd5e1; padding: 16px; border-radius: 6px; text-align: center; cursor: pointer; background: #f8fafc;" onclick="document.getElementById('solutionImageInput').click()">
-                    <span>📸 Cliquez pour joindre la photo de votre solution</span>
-                    <input type="file" id="solutionImageInput" accept="image/*" style="display: none;" onchange="handleImageFileSelected(this, 'solutionImagePreview')">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+                    <label class="form-label" style="margin: 0;">Polycopies / Pages Manuscrites Rédigées *</label>
+                    <span id="polycopeCountBadge" style="font-size: 11px; font-weight: 700; color: var(--primary);">0 page(s)</span>
                 </div>
-                <img id="solutionImagePreview" style="max-width: 100%; max-height: 200px; border-radius: 4px; margin-top: 8px; display: none;" alt="Copie manuscrite">
+                <p style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px;">
+                    Vous pouvez envoyer plusieurs pages (Page 1, Page 2...). Les photos doivent être claires et lisibles.
+                </p>
+
+                <div style="border: 2px dashed #cbd5e1; padding: 16px; border-radius: 6px; text-align: center; cursor: pointer; background: #f8fafc; transition: all 0.2s;" onclick="document.getElementById('solutionImageInput').click()" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='#cbd5e1'">
+                    <span style="font-weight: 600; color: var(--primary-dark); font-size: 12.5px;">📸 Cliquez pour ajouter une ou plusieurs polycopies</span>
+                    <input type="file" id="solutionImageInput" accept="image/*" multiple style="display: none;" onchange="handleMultiplePolycopiesSelected(this)">
+                </div>
+
+                <div id="polycopeGridContainer" class="polycope-grid"></div>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">Notes ou justification complémentaire (LaTeX accepté) :</label>
-                <textarea id="solutionNoteInput" class="form-textarea" rows="2" placeholder="Explications brèves..."></textarea>
+            <!-- Solution text with dynamic preview toggle -->
+            <div class="form-group" style="margin-top: 14px;">
+                <div class="preview-toggle-bar">
+                    <label class="form-label" style="margin: 0;">Démonstration ou notes (LaTeX avec $...$ ou $$...$$) :</label>
+                    <button type="button" id="btnTogglePreviewSolution" class="btn-toggle-preview" style="display: none;" onclick="toggleSolutionTextPreview()">
+                        👁️ Voir prévisualisation LaTeX
+                    </button>
+                </div>
+
+                <textarea id="solutionNoteInput" class="form-textarea" rows="4" placeholder="Ex: Pour tout $n \ge 1$, considérons la somme $sum_{i=1}^{n} k = \frac{n(n+1)}{2}$..." oninput="handleSolutionTextInput(this.value)"></textarea>
+                <div id="solutionNotePreviewPane" class="latex-preview-pane" style="display: none;"></div>
             </div>
 
-            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px;">
                 <button type="button" class="btn-cancel" onclick="closeSubmitSolutionModal()">Annuler</button>
-                <button type="button" class="btn-submit-action" onclick="submitProblemSolution()">Envoyer à l'Admin</button>
+                <button type="button" class="btn-submit-action" id="btnSubmitSolutionConfirm" onclick="submitProblemSolution()">🚀 Envoyer mes Polycopies</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2b. MANAGE & EDIT SUBMITTED COPIES MODAL (ADD/REMOVE PAGES, EDIT TEXT, DELETE) -->
+    <div id="manageSubmissionModal" class="modal-overlay">
+        <div class="modal-card" style="max-width: 680px;">
+            <button class="modal-close-btn" onclick="closeManageSubmissionModal()">&times;</button>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                <div>
+                    <h2 class="modal-title" id="manageSubModalTitle">Gérer ma Soumission</h2>
+                    <p class="modal-desc" id="manageSubModalSubtitle">Consultez, modifiez ou complétez vos copies.</p>
+                </div>
+                <div id="manageSubStatusBadge"></div>
+            </div>
+
+            <!-- Problem statement recall -->
+            <div id="manageSubProblemRecall" class="remember-problem-box"></div>
+
+            <!-- Admin feedback note if reviewed -->
+            <div id="manageSubAdminReviewNotice" style="display: none; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 12px; margin-bottom: 14px; font-size: 12px;"></div>
+
+            <!-- Constraint warning regarding adding images -->
+            <div id="manageSubImagePermissionNotice" style="font-size: 11.5px; padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; display: none;"></div>
+
+            <!-- Uploaded Polycopies gallery & modification -->
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px;">
+                    <label class="form-label" style="margin: 0;">Polycopies actuelles de votre solution :</label>
+                    <span id="managePolycopeCount" style="font-size: 11.5px; font-weight: 700; color: var(--primary);">0 page(s)</span>
+                </div>
+
+                <div id="managePolycopeGrid" class="polycope-grid"></div>
+
+                <!-- Add more polycopies button if allowed -->
+                <div id="manageAddMorePagesSection" style="margin-top: 10px;">
+                    <button type="button" class="btn-cancel" style="background: #eff6ff; color: var(--primary); border: 1px dashed var(--primary-border); width: 100%; padding: 8px; font-weight: 700;" onclick="document.getElementById('manageImageInput').click()">
+                        ➕ Ajouter une autre page manuscrite (Polycopie)
+                    </button>
+                    <input type="file" id="manageImageInput" accept="image/*" multiple style="display: none;" onchange="handleManageAddFiles(this)">
+                </div>
+            </div>
+
+            <!-- Solution text editing with LaTeX preview toggle -->
+            <div class="form-group" style="margin-top: 14px;">
+                <div class="preview-toggle-bar">
+                    <label class="form-label" style="margin: 0;">Démonstration ou explications rédigées :</label>
+                    <button type="button" id="btnToggleManagePreview" class="btn-toggle-preview" style="display: none;" onclick="toggleManageTextPreview()">
+                        👁️ Voir prévisualisation LaTeX
+                    </button>
+                </div>
+                <textarea id="manageSolutionTextInput" class="form-textarea" rows="4" placeholder="Explications rédigées (LaTeX accepté)..." oninput="handleManageTextInput(this.value)"></textarea>
+                <div id="manageSolutionTextPreviewPane" class="latex-preview-pane" style="display: none;"></div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 18px; flex-wrap: wrap; gap: 8px;">
+                <button type="button" class="btn-cancel" style="background: #fee2e2; color: #b91c1c; font-weight: 700;" onclick="deleteCurrentManagedSubmission()">
+                    🗑️ Supprimer cette Soumission
+                </button>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn-cancel" onclick="closeManageSubmissionModal()">Fermer</button>
+                    <button type="button" class="btn-submit-action" id="btnSaveManageSubmission" onclick="saveCurrentManagedSubmission()">💾 Enregistrer les Modifications</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1266,10 +1505,14 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Message (LaTeX avec $x$ ou $$x$$) *</label>
-                    <textarea id="topicContentInput" class="form-textarea" rows="4" placeholder="Votre message..." required oninput="updateLatexPreview('topicContentInput', 'topicLatexPreview')"></textarea>
-                    <div style="font-size: 11px; font-weight:700; color:var(--text-muted); margin-top:6px;">Aperçu LaTeX en direct :</div>
-                    <div id="topicLatexPreview" style="background:#f8fafc; border:1px dashed #cbd5e1; padding:8px 10px; border-radius:5px; font-size:12.5px; min-height:36px; overflow-x:auto;">Aperçu...</div>
+                    <div class="preview-toggle-bar">
+                        <label class="form-label" style="margin: 0;">Message (LaTeX avec $x$ ou $$x$$) *</label>
+                        <button type="button" id="btnToggleTopicPreview" class="btn-toggle-preview" style="display: none;" onclick="toggleTopicLatexPreview()">
+                            👁️ Voir prévisualisation LaTeX
+                        </button>
+                    </div>
+                    <textarea id="topicContentInput" class="form-textarea" rows="5" placeholder="Votre message (LaTeX avec $...$ et $$...$$)..." required oninput="handleTopicContentInput(this.value)"></textarea>
+                    <div id="topicLatexPreviewPane" class="latex-preview-pane" style="display: none;"></div>
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
                     <button type="button" class="btn-cancel" onclick="closeCreateTopicModal()">Annuler</button>
@@ -1724,12 +1967,62 @@
             }
         }
 
+        // ---------------- ADVANCED LATEX MATH NORMALIZATION & RENDERING ----------------
+        function normalizeLatexMath(raw) {
+            if (!raw) return '';
+            // Auto-correct missing backslashes for common Olympiad math symbols inside $...$ and $$...$$
+            const keywords = 'sum|prod|int|iint|iiint|oint|lim|limsup|liminf|inf|sup|max|min|alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|vartheta|iota|kappa|lambda|mu|nu|xi|pi|varpi|rho|varrho|sigma|varsigma|tau|upsilon|phi|varphi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|sqrt|frac|binom|infty|leq|le|geq|ge|neq|ne|times|cdot|pm|mp|div|subset|supset|subseteq|supseteq|cap|cup|in|notin|forall|exists|implies|iff|to|rightarrow|leftarrow|equiv|approx|sim|cong|sin|cos|tan|cot|sec|csc|log|ln|exp|gcd|lcm|deg|det';
+            const re = new RegExp(`(?<!\\\\)\\b(${keywords})\\b`, 'g');
+
+            return raw.replace(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g, (match) => {
+                return match.replace(re, '\\$1');
+            });
+        }
+
+        function renderMathSafely(containerEl) {
+            if (!containerEl) return;
+            try {
+                renderMathInElement(containerEl, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false},
+                        {left: '\\(', right: '\\)', display: false},
+                        {left: '\\[', right: '\\]', display: true}
+                    ],
+                    throwOnError: false
+                });
+            } catch (e) {
+                console.warn("KaTeX render error:", e);
+            }
+        }
+
+        function formatTextWithLatex(text) {
+            if (!text) return '';
+            const normalized = normalizeLatexMath(text);
+            return escapeHtml(normalized).replace(/\n/g, '<br>');
+        }
+
         // ---------------- PROBLEMS (15 à 75 pts) ----------------
+        let currentUserSubmissions = [];
+
         async function loadProblems() {
             try {
                 const res = await fetch('/api/problems');
                 const data = await res.json();
                 problemsData = data.problems || [];
+
+                if (currentUser) {
+                    try {
+                        const uRes = await fetch(`/api/users/${currentUser.id}`);
+                        const uData = await uRes.json();
+                        currentUserSubmissions = uData.submissions || [];
+                    } catch (err) {
+                        currentUserSubmissions = [];
+                    }
+                } else {
+                    currentUserSubmissions = [];
+                }
+
                 renderProblems();
             } catch (e) {
                 console.error("Problems load error:", e);
@@ -1798,6 +2091,29 @@
 
                 catProblems.forEach(p => {
                     const isSolved = solvedSet.has(p.id);
+                    const userSub = currentUserSubmissions.find(s => s.problemId === p.id);
+
+                    let actionBtnHtml = '';
+                    if (userSub) {
+                        const count = (userSub.images?.length || 1);
+                        const statusText = userSub.status === 'approved' ? '✓ Validé' : (userSub.status === 'rejected' ? '✗ Refusé' : '⏳ En examen');
+                        const statusColor = userSub.status === 'approved' ? '#15803d' : (userSub.status === 'rejected' ? '#b91c1c' : '#b45309');
+                        const statusBg = userSub.status === 'approved' ? '#dcfce7' : (userSub.status === 'rejected' ? '#fee2e2' : '#fef3c7');
+
+                        actionBtnHtml = `
+                            <button class="btn-cancel" style="background:#eff6ff; color:var(--primary); border:1px solid var(--primary-border); font-size:11px; padding:4px 9px; font-weight:700; display:inline-flex; align-items:center; gap:5px;" onclick="openManageSubmissionModal('${userSub.id}')" title="Gérer ou modifier ma soumission">
+                                <span>📂 Mes Polycopies (${count} p.)</span>
+                                <span style="font-size:9.5px; background:${statusBg}; color:${statusColor}; padding:1px 5px; border-radius:4px;">${statusText}</span>
+                            </button>
+                        `;
+                    } else {
+                        actionBtnHtml = `
+                            <button class="btn-submit-problem" onclick="openSubmitSolutionModal('${p.id}')">
+                                📸 Soumettre Copie
+                            </button>
+                        `;
+                    }
+
                     html += `
                         <div class="problem-card">
                             <div>
@@ -1810,11 +2126,9 @@
                             </div>
                             
                             <div class="problem-actions" style="justify-content: flex-end;">
-                                <div style="display: flex; align-items: center; gap: 6px;">
+                                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                                     ${isSolved ? `<span class="status-badge solved">✓ Validé</span>` : ''}
-                                    <button class="btn-submit-problem" onclick="openSubmitSolutionModal('${p.id}')">
-                                        📸 Soumettre Copie
-                                    </button>
+                                    ${actionBtnHtml}
                                 </div>
                             </div>
                         </div>
@@ -1826,6 +2140,10 @@
             renderAllMath();
         }
 
+        // ---------------- SUBMIT SOLUTION MODAL (MULTIPLE POLYCOPIES & PREVIEW TOGGLE) ----------------
+        let solutionUploadImages = [];
+        let isSolutionPreviewActive = false;
+
         function openSubmitSolutionModal(problemId) {
             if (!currentUser) { openAuthModal('login'); return; }
             const prob = problemsData.find(p => p.id === problemId);
@@ -1833,44 +2151,128 @@
 
             activeProblemForSubmission = prob;
             document.getElementById('submitModalSubtitle').textContent = `${prob.title} (${prob.theme} — ${prob.points} Points)`;
-            document.getElementById('submitModalStatement').innerHTML = prob.statement;
-            document.getElementById('solutionImageInput').value = '';
-            document.getElementById('solutionImagePreview').style.display = 'none';
-            document.getElementById('solutionNoteInput').value = '';
-            currentBase64Image = null;
+            
+            // Problem statement at top for instant remember
+            const stmtBox = document.getElementById('submitModalStatement');
+            stmtBox.innerHTML = `
+                <div class="remember-problem-title">📌 Rappel de l'Énoncé du Problème :</div>
+                <div class="remember-problem-body">${prob.statement}</div>
+            `;
+            renderMathSafely(stmtBox);
+
+            solutionUploadImages = [];
+            renderPolycopeGrid();
+
+            const textarea = document.getElementById('solutionNoteInput');
+            textarea.value = '';
+            textarea.style.display = 'block';
+            document.getElementById('solutionNotePreviewPane').style.display = 'none';
+            document.getElementById('btnTogglePreviewSolution').style.display = 'none';
+            document.getElementById('btnTogglePreviewSolution').textContent = '👁️ Voir prévisualisation LaTeX';
+            isSolutionPreviewActive = false;
 
             document.getElementById('submitSolutionModal').classList.add('active');
-            renderAllMath();
         }
 
         function closeSubmitSolutionModal() {
             document.getElementById('submitSolutionModal').classList.remove('active');
             activeProblemForSubmission = null;
+            solutionUploadImages = [];
+            isSolutionPreviewActive = false;
         }
 
-        function handleImageFileSelected(inputEl, previewImgId) {
-            const file = inputEl.files[0];
-            if (!file) return;
+        function handleMultiplePolycopiesSelected(inputEl) {
+            const files = Array.from(inputEl.files || []);
+            if (!files.length) return;
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                currentBase64Image = e.target.result;
-                const previewImg = document.getElementById(previewImgId);
-                previewImg.src = currentBase64Image;
-                previewImg.style.display = 'block';
-            };
-            reader.readAsDataURL(file);
+            let loaded = 0;
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    solutionUploadImages.push(e.target.result);
+                    loaded++;
+                    if (loaded === files.length) {
+                        renderPolycopeGrid();
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+            inputEl.value = '';
+        }
+
+        function removePolycope(index) {
+            solutionUploadImages.splice(index, 1);
+            renderPolycopeGrid();
+        }
+
+        function renderPolycopeGrid() {
+            const container = document.getElementById('polycopeGridContainer');
+            const badge = document.getElementById('polycopeCountBadge');
+            if (badge) badge.textContent = `${solutionUploadImages.length} page(s)`;
+            if (!container) return;
+
+            if (solutionUploadImages.length === 0) {
+                container.innerHTML = `<div style="grid-column: 1/-1; font-size: 11.5px; color: var(--text-muted); text-align: center; padding: 10px;">Aucune polycopie jointe pour le moment.</div>`;
+                return;
+            }
+
+            container.innerHTML = solutionUploadImages.map((src, idx) => `
+                <div class="polycope-item">
+                    <span class="polycope-badge">Page ${idx + 1}</span>
+                    <button type="button" class="polycope-delete-btn" onclick="removePolycope(${idx})" title="Supprimer cette page">&times;</button>
+                    <img src="${src}" onclick="enlargeImage('${src}')" alt="Page ${idx + 1}" title="Cliquer pour zoomer">
+                </div>
+            `).join('');
+        }
+
+        function handleSolutionTextInput(val) {
+            const btn = document.getElementById('btnTogglePreviewSolution');
+            if (!btn) return;
+            if (val && val.trim().length > 0) {
+                btn.style.display = 'inline-flex';
+            } else {
+                btn.style.display = 'none';
+                if (isSolutionPreviewActive) {
+                    toggleSolutionTextPreview();
+                }
+            }
+        }
+
+        function toggleSolutionTextPreview() {
+            const textarea = document.getElementById('solutionNoteInput');
+            const preview = document.getElementById('solutionNotePreviewPane');
+            const btn = document.getElementById('btnTogglePreviewSolution');
+
+            if (!isSolutionPreviewActive) {
+                const rawText = textarea.value;
+                const normalized = normalizeLatexMath(rawText);
+                preview.innerHTML = escapeHtml(normalized).replace(/\n/g, '<br>') || '<em>Aucun texte rédigé.</em>';
+                renderMathSafely(preview);
+                textarea.style.display = 'none';
+                preview.style.display = 'block';
+                btn.textContent = '✏️ Revenir à la rédaction';
+                isSolutionPreviewActive = true;
+            } else {
+                preview.style.display = 'none';
+                textarea.style.display = 'block';
+                textarea.focus();
+                btn.textContent = '👁️ Voir prévisualisation LaTeX';
+                isSolutionPreviewActive = false;
+            }
         }
 
         async function submitProblemSolution() {
             if (!currentUser || !activeProblemForSubmission) return;
 
-            if (!currentBase64Image) {
-                showToast("La photo de votre copie manuscrite rédigée est obligatoire.", true);
+            if (solutionUploadImages.length === 0) {
+                showToast("Veuillez joindre au moins une polycopie claire de votre solution rédigée.", true);
                 return;
             }
 
             const note = document.getElementById('solutionNoteInput').value.trim();
+            const btn = document.getElementById('btnSubmitSolutionConfirm');
+            btn.disabled = true;
+            btn.textContent = "Envoi en cours...";
 
             try {
                 const res = await fetch(`/api/problems/${activeProblemForSubmission.id}/submit`, {
@@ -1880,22 +2282,302 @@
                         'x-user-id': currentUser.id
                     },
                     body: JSON.stringify({
-                        imageUrl: currentBase64Image,
+                        images: solutionUploadImages,
+                        imageUrl: solutionUploadImages[0],
                         solutionText: note
                     })
                 });
 
                 const data = await res.json();
                 if (!res.ok) {
-                    showToast(data.error || "Erreur.", true);
+                    showToast(data.error || "Erreur de soumission.", true);
                     return;
                 }
 
                 closeSubmitSolutionModal();
-                showToast("Copie envoyée à l'administrateur !");
+                showToast("Vos polycopies et votre solution ont été transmises à l'administrateur !");
+                await loadProblems();
+                if (currentUser) {
+                    loadUserProfile(currentUser.id);
+                }
             } catch (err) {
                 showToast("Erreur réseau.", true);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "🚀 Envoyer mes Polycopies";
             }
+        }
+
+        // ---------------- MANAGE & EDIT SUBMITTED COPIES MODAL ----------------
+        let currentManagedSub = null;
+        let managedImages = [];
+        let isManagePreviewActive = false;
+
+        async function openManageSubmissionModal(subId) {
+            if (!currentUser) return;
+
+            let sub = currentUserSubmissions.find(s => s.id === subId);
+            if (!sub) {
+                try {
+                    const res = await fetch(`/api/users/${currentUser.id}`);
+                    const data = await res.json();
+                    currentUserSubmissions = data.submissions || [];
+                    sub = currentUserSubmissions.find(s => s.id === subId);
+                } catch (e) {}
+            }
+            if (!sub) {
+                showToast("Soumission introuvable.", true);
+                return;
+            }
+
+            currentManagedSub = sub;
+            managedImages = Array.isArray(sub.images) && sub.images.length > 0 
+                ? [...sub.images] 
+                : (sub.imageUrl ? [sub.imageUrl] : []);
+
+            const prob = problemsData.find(p => p.id === sub.problemId);
+
+            document.getElementById('manageSubModalTitle').textContent = `Gestion de Copie : ${sub.problemTitle}`;
+            document.getElementById('manageSubModalSubtitle').textContent = `${sub.category} • ${sub.points} Points`;
+
+            // Status badge
+            const badgeEl = document.getElementById('manageSubStatusBadge');
+            if (sub.status === 'approved') {
+                badgeEl.innerHTML = `<span class="status-badge solved" style="font-size:12px; padding:3px 10px;">✅ Validé (+${sub.points} pts)</span>`;
+            } else if (sub.status === 'rejected') {
+                badgeEl.innerHTML = `<span class="status-badge" style="font-size:12px; padding:3px 10px; background:#fee2e2; color:#b91c1c;">❌ Refusé</span>`;
+            } else {
+                badgeEl.innerHTML = `<span class="status-badge pending" style="font-size:12px; padding:3px 10px;">⏳ En cours d'examen</span>`;
+            }
+
+            // Problem statement recall
+            const recallEl = document.getElementById('manageSubProblemRecall');
+            recallEl.innerHTML = `
+                <div class="remember-problem-title">📌 Rappel de l'Énoncé du Problème :</div>
+                <div class="remember-problem-body">${prob ? prob.statement : 'Énoncé non disponible.'}</div>
+            `;
+            renderMathSafely(recallEl);
+
+            // Admin feedback notice
+            const adminNoticeEl = document.getElementById('manageSubAdminReviewNotice');
+            if (sub.reviewReason) {
+                adminNoticeEl.innerHTML = `<strong>Avis de l'administrateur :</strong> <em>« ${escapeHtml(sub.reviewReason)} »</em>`;
+                adminNoticeEl.style.display = 'block';
+            } else {
+                adminNoticeEl.style.display = 'none';
+            }
+
+            // Enforce Rule:
+            // "si le admin voit sa soumission il ne peut ajouter des images que seulement sa soumission est vrai"
+            const isAdminReviewed = sub.status !== 'pending' || Boolean(sub.reviewedAt);
+            const canAddImages = !isAdminReviewed || sub.status === 'approved';
+
+            const permNoticeEl = document.getElementById('manageSubImagePermissionNotice');
+            const addSection = document.getElementById('manageAddMorePagesSection');
+
+            if (!canAddImages) {
+                permNoticeEl.style.display = 'block';
+                permNoticeEl.style.background = '#fee2e2';
+                permNoticeEl.style.color = '#b91c1c';
+                permNoticeEl.style.border = '1px solid #fca5a5';
+                permNoticeEl.innerHTML = `🔒 <strong>Règle d'examen :</strong> L'administrateur a déjà examiné cette copie (non validée). L'ajout de nouvelles polycopies est verrouillé car la soumission n'est pas validée.`;
+                addSection.style.display = 'none';
+            } else {
+                if (isAdminReviewed && sub.status === 'approved') {
+                    permNoticeEl.style.display = 'block';
+                    permNoticeEl.style.background = '#dcfce7';
+                    permNoticeEl.style.color = '#15803d';
+                    permNoticeEl.style.border = '1px solid #86efac';
+                    permNoticeEl.innerHTML = `✅ <strong>Soumission validée (Vraie) :</strong> Vous pouvez ajouter des polycopies complémentaires si vous le souhaitez.`;
+                } else {
+                    permNoticeEl.style.display = 'none';
+                }
+                addSection.style.display = 'block';
+            }
+
+            renderManagePolycopeGrid(canAddImages);
+
+            // Text area with LaTeX preview toggle
+            const textarea = document.getElementById('manageSolutionTextInput');
+            const preview = document.getElementById('manageSolutionTextPreviewPane');
+            const toggleBtn = document.getElementById('btnToggleManagePreview');
+
+            textarea.value = sub.solutionText || '';
+            textarea.style.display = 'block';
+            preview.style.display = 'none';
+            isManagePreviewActive = false;
+
+            if (textarea.value.trim().length > 0) {
+                toggleBtn.style.display = 'inline-flex';
+                toggleBtn.textContent = '👁️ Voir prévisualisation LaTeX';
+            } else {
+                toggleBtn.style.display = 'none';
+            }
+
+            document.getElementById('manageSubmissionModal').classList.add('active');
+        }
+
+        function closeManageSubmissionModal() {
+            document.getElementById('manageSubmissionModal').classList.remove('active');
+            currentManagedSub = null;
+            managedImages = [];
+            isManagePreviewActive = false;
+        }
+
+        function renderManagePolycopeGrid(canDeleteOrAdd = true) {
+            const grid = document.getElementById('managePolycopeGrid');
+            const countEl = document.getElementById('managePolycopeCount');
+            if (countEl) countEl.textContent = `${managedImages.length} page(s)`;
+            if (!grid) return;
+
+            if (managedImages.length === 0) {
+                grid.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding:10px; color:var(--text-muted); font-size:11.5px;">Aucune image restante.</div>`;
+                return;
+            }
+
+            grid.innerHTML = managedImages.map((src, idx) => `
+                <div class="polycope-item">
+                    <span class="polycope-badge">Page ${idx + 1}</span>
+                    ${canDeleteOrAdd ? `<button type="button" class="polycope-delete-btn" onclick="removeManagedPolycope(${idx})" title="Supprimer cette page">&times;</button>` : ''}
+                    <img src="${src}" onclick="enlargeImage('${src}')" alt="Page ${idx + 1}" title="Cliquer pour zoomer">
+                </div>
+            `).join('');
+        }
+
+        function removeManagedPolycope(index) {
+            if (managedImages.length <= 1) {
+                showToast("Une soumission doit comporter au moins une page. Pour tout supprimer, cliquez sur 'Supprimer cette soumission'.", true);
+                return;
+            }
+            managedImages.splice(index, 1);
+            const isAdminReviewed = currentManagedSub?.status !== 'pending' || Boolean(currentManagedSub?.reviewedAt);
+            const canDeleteOrAdd = !isAdminReviewed || currentManagedSub?.status === 'approved';
+            renderManagePolycopeGrid(canDeleteOrAdd);
+        }
+
+        function handleManageAddFiles(inputEl) {
+            const files = Array.from(inputEl.files || []);
+            if (!files.length) return;
+
+            let count = 0;
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    managedImages.push(e.target.result);
+                    count++;
+                    if (count === files.length) {
+                        renderManagePolycopeGrid(true);
+                    }
+                };
+                reader.readAsDataURL(file);
+            });
+            inputEl.value = '';
+        }
+
+        function handleManageTextInput(val) {
+            const btn = document.getElementById('btnToggleManagePreview');
+            if (!btn) return;
+            if (val && val.trim().length > 0) {
+                btn.style.display = 'inline-flex';
+            } else {
+                btn.style.display = 'none';
+                if (isManagePreviewActive) toggleManageTextPreview();
+            }
+        }
+
+        function toggleManageTextPreview() {
+            const textarea = document.getElementById('manageSolutionTextInput');
+            const preview = document.getElementById('manageSolutionTextPreviewPane');
+            const btn = document.getElementById('btnToggleManagePreview');
+
+            if (!isManagePreviewActive) {
+                const rawText = textarea.value;
+                const normalized = normalizeLatexMath(rawText);
+                preview.innerHTML = escapeHtml(normalized).replace(/\n/g, '<br>') || '<em>Aucun texte.</em>';
+                renderMathSafely(preview);
+                textarea.style.display = 'none';
+                preview.style.display = 'block';
+                btn.textContent = '✏️ Revenir à la rédaction';
+                isManagePreviewActive = true;
+            } else {
+                preview.style.display = 'none';
+                textarea.style.display = 'block';
+                textarea.focus();
+                btn.textContent = '👁️ Voir prévisualisation LaTeX';
+                isManagePreviewActive = false;
+            }
+        }
+
+        async function saveCurrentManagedSubmission() {
+            if (!currentManagedSub) return;
+
+            if (managedImages.length === 0) {
+                showToast("Au moins une polycopie / page manuscrite est requise.", true);
+                return;
+            }
+
+            const text = document.getElementById('manageSolutionTextInput').value;
+            const btn = document.getElementById('btnSaveManageSubmission');
+            btn.disabled = true;
+            btn.textContent = "Enregistrement...";
+
+            try {
+                const res = await fetch(`/api/submissions/${currentManagedSub.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-user-id': currentUser.id
+                    },
+                    body: JSON.stringify({
+                        images: managedImages,
+                        solutionText: text
+                    })
+                });
+
+                const data = await res.json();
+                if (!res.ok) {
+                    showToast(data.error || "Erreur lors de la mise à jour.", true);
+                    return;
+                }
+
+                closeManageSubmissionModal();
+                showToast("Soumission et polycopies mises à jour !");
+                await loadProblems();
+                if (currentUser) loadUserProfile(currentUser.id);
+            } catch (err) {
+                showToast("Erreur réseau.", true);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "💾 Enregistrer les Modifications";
+            }
+        }
+
+        function deleteCurrentManagedSubmission() {
+            if (!currentManagedSub) return;
+            showConfirmDialog(
+                "Supprimer cette soumission",
+                `Voulez-vous supprimer définitivement votre soumission pour "${currentManagedSub.problemTitle}" ainsi que toutes ses polycopies ?`,
+                async () => {
+                    try {
+                        const res = await fetch(`/api/submissions/${currentManagedSub.id}`, {
+                            method: 'DELETE',
+                            headers: { 'x-user-id': currentUser.id }
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            closeManageSubmissionModal();
+                            showToast("Soumission supprimée avec succès.");
+                            await loadProblems();
+                            if (currentUser) loadUserProfile(currentUser.id);
+                        } else {
+                            showToast(data.error || "Erreur de suppression.", true);
+                        }
+                    } catch (e) {
+                        showToast("Erreur réseau.", true);
+                    }
+                },
+                true
+            );
         }
 
         // ---------------- OLYMPIAD BLOC (EXAM, PDF, NOTATION & MÉDAILLES) ----------------
@@ -2682,16 +3364,38 @@
             document.getElementById('createTopicModal').classList.remove('active');
         }
 
-        function updateLatexPreview(inputId, previewId) {
-            const val = document.getElementById(inputId).value;
-            const el = document.getElementById(previewId);
-            el.textContent = val || 'Aperçu...';
-            try {
-                renderMathInElement(el, {
-                    delimiters: [{left:'$$', right:'$$', display:true}, {left:'$', right:'$', display:false}],
-                    throwOnError: false
-                });
-            } catch (e) {}
+        let isTopicPreviewActive = false;
+        function handleTopicContentInput(val) {
+            const btn = document.getElementById('btnToggleTopicPreview');
+            if (!btn) return;
+            if (val && val.trim().length > 0) {
+                btn.style.display = 'inline-flex';
+            } else {
+                btn.style.display = 'none';
+                if (isTopicPreviewActive) toggleTopicLatexPreview();
+            }
+        }
+
+        function toggleTopicLatexPreview() {
+            const textarea = document.getElementById('topicContentInput');
+            const preview = document.getElementById('topicLatexPreviewPane');
+            const btn = document.getElementById('btnToggleTopicPreview');
+
+            if (!isTopicPreviewActive) {
+                const normalized = normalizeLatexMath(textarea.value);
+                preview.innerHTML = escapeHtml(normalized).replace(/\n/g, '<br>') || '<em>Aucun contenu.</em>';
+                renderMathSafely(preview);
+                textarea.style.display = 'none';
+                preview.style.display = 'block';
+                btn.textContent = '✏️ Revenir à la rédaction';
+                isTopicPreviewActive = true;
+            } else {
+                preview.style.display = 'none';
+                textarea.style.display = 'block';
+                textarea.focus();
+                btn.textContent = '👁️ Voir prévisualisation LaTeX';
+                isTopicPreviewActive = false;
+            }
         }
 
         async function handleCreateTopicSubmit(e) {
@@ -2848,24 +3552,37 @@
                                 <tr>
                                     <th>Problème</th>
                                     <th>Catégorie</th>
+                                    <th>Polycopies</th>
                                     <th>Points</th>
                                     <th>Statut</th>
+                                    <th style="text-align: right;">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${(data.submissions || []).length === 0 ? `<tr><td colspan="4" style="text-align:center; padding:12px; color:var(--text-muted);">Aucune copie soumise.</td></tr>` : ''}
-                                ${(data.submissions || []).map(s => `
-                                    <tr>
-                                        <td><strong>${escapeHtml(s.problemTitle)}</strong></td>
-                                        <td>${escapeHtml(s.category)}</td>
-                                        <td>+${s.points} pts</td>
-                                        <td>
-                                            ${s.status === 'approved' ? '<span class="status-badge solved">Validé</span>' : ''}
-                                            ${s.status === 'rejected' ? '<span class="status-badge" style="background:#fee2e2; color:#b91c1c;">Refusé</span>' : ''}
-                                            ${s.status === 'pending' ? '<span class="status-badge pending">En Examen</span>' : ''}
-                                        </td>
-                                    </tr>
-                                `).join('')}
+                                ${(data.submissions || []).length === 0 ? `<tr><td colspan="6" style="text-align:center; padding:12px; color:var(--text-muted);">Aucune copie soumise.</td></tr>` : ''}
+                                ${(data.submissions || []).map(s => {
+                                    const imgCount = (s.images?.length || (s.imageUrl ? 1 : 0));
+                                    return `
+                                        <tr>
+                                            <td><strong>${escapeHtml(s.problemTitle)}</strong></td>
+                                            <td>${escapeHtml(s.category)}</td>
+                                            <td><span class="meta-tag">📄 ${imgCount} page${imgCount > 1 ? 's' : ''}</span></td>
+                                            <td>+${s.points} pts</td>
+                                            <td>
+                                                ${s.status === 'approved' ? '<span class="status-badge solved">Validé</span>' : ''}
+                                                ${s.status === 'rejected' ? '<span class="status-badge" style="background:#fee2e2; color:#b91c1c;">Refusé</span>' : ''}
+                                                ${s.status === 'pending' ? '<span class="status-badge pending">En Examen</span>' : ''}
+                                            </td>
+                                            <td style="text-align: right;">
+                                                ${isOwner || currentUser?.role === 'admin' ? `
+                                                    <button class="pill-btn" style="font-size:11px; padding:2px 8px;" onclick="openManageSubmissionModal('${s.id}')">
+                                                        📂 Gérer / Modifier
+                                                    </button>
+                                                ` : '-'}
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
                             </tbody>
                         </table>
                     </div>
@@ -2895,65 +3612,213 @@
 
             const category = document.getElementById('adminCategorySelect')?.value || 'all';
             const userFilter = document.getElementById('adminUserFilterSelect')?.value || 'all';
+            const statusFilter = document.getElementById('adminStatusFilterSelect')?.value || 'all';
 
             try {
-                const res = await fetch(`/api/admin/submissions?category=${encodeURIComponent(category)}`, {
+                const queryParams = new URLSearchParams({
+                    category,
+                    userId: userFilter,
+                    status: statusFilter
+                });
+
+                const res = await fetch(`/api/admin/submissions?${queryParams.toString()}`, {
                     headers: { 'x-user-id': currentUser.id }
                 });
                 const data = await res.json();
-                let subs = data.submissions || [];
+                const subs = data.submissions || [];
+                const stats = data.stats || {};
 
-                if (userFilter !== 'all') {
-                    subs = subs.filter(s => s.username === userFilter);
+                // Render stats banner
+                const statsBanner = document.getElementById('adminSubmissionsStatsBanner');
+                if (statsBanner) {
+                    statsBanner.innerHTML = `
+                        <div style="background:#fff; border:1px solid #cbd5e1; border-radius:6px; padding:6px 12px; font-size:12px;">
+                            Total : <strong>${stats.total || 0}</strong>
+                        </div>
+                        <div style="background:#fef3c7; border:1px solid #fde68a; color:#b45309; border-radius:6px; padding:6px 12px; font-size:12px;">
+                            ⏳ En attente : <strong>${stats.pending || 0}</strong>
+                        </div>
+                        <div style="background:#dcfce7; border:1px solid #bbf7d0; color:#15803d; border-radius:6px; padding:6px 12px; font-size:12px;">
+                            ✅ Validées : <strong>${stats.approved || 0}</strong>
+                        </div>
+                        <div style="background:#fee2e2; border:1px solid #fecaca; color:#b91c1c; border-radius:6px; padding:6px 12px; font-size:12px;">
+                            ❌ Refusées : <strong>${stats.rejected || 0}</strong>
+                        </div>
+                    `;
                 }
 
                 // Populate user filter
                 const select = document.getElementById('adminUserFilterSelect');
                 if (select) {
-                    select.innerHTML = `<option value="all">Tous les utilisateurs</option>` +
-                        Object.keys(data.stats?.byUser || {}).map(u => `<option value="${escapeHtml(u)}">${escapeHtml(u)}</option>`).join('');
+                    const currentSelected = select.value;
+                    select.innerHTML = `<option value="all">Tous les candidats</option>` +
+                        Object.keys(stats.byUser || {}).map(u => `<option value="${escapeHtml(u)}" ${currentSelected === u ? 'selected' : ''}>${escapeHtml(u)} (${stats.byUser[u]})</option>`).join('');
                 }
 
                 const list = document.getElementById('adminSubmissionsList');
                 if (subs.length === 0) {
-                    list.innerHTML = `<div style="text-align:center; padding:16px; color:var(--text-muted); background:#fff; border-radius:6px;">Aucune copie pour ces critères.</div>`;
+                    list.innerHTML = `<div style="text-align:center; padding:32px; color:var(--text-muted); background:#fff; border-radius:8px; border:1px solid #e2e8f0;">Aucune copie pour ces critères.</div>`;
                     return;
                 }
 
-                list.innerHTML = subs.map(s => `
-                    <div class="olympiad-card" style="margin-bottom:12px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                            <div>
-                                <span class="problem-theme-badge">${escapeHtml(s.category)}</span>
-                                <strong style="margin-left:6px;">${escapeHtml(s.problemTitle)}</strong>
-                                <span style="font-size:11px; color:var(--text-muted); margin-left:6px;">par ${escapeHtml(s.username)}</span>
+                list.innerHTML = subs.map(s => {
+                    const images = (s.images && Array.isArray(s.images) && s.images.length > 0) ? s.images : (s.imageUrl ? [s.imageUrl] : []);
+                    const statusBadge = s.status === 'approved' 
+                        ? '<span class="status-badge solved" style="font-size:11.5px;">✅ Validé (+'+s.points+' pts)</span>'
+                        : (s.status === 'rejected' 
+                            ? '<span class="status-badge" style="background:#fee2e2; color:#b91c1c; font-size:11.5px;">❌ Refusé</span>' 
+                            : '<span class="status-badge pending" style="font-size:11.5px;">⏳ En attente de révision</span>');
+
+                    return `
+                        <div class="admin-sub-card" id="admin-sub-${s.id}">
+                            <!-- Header with Theme, Problem Title, and Points -->
+                            <div class="admin-sub-header">
+                                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                    <span class="problem-theme-badge" style="font-size:12px;">${escapeHtml(s.problemTheme || s.category)}</span>
+                                    <h3 style="font-size: 15px; font-weight: 800; color: var(--primary-dark); margin: 0;">${escapeHtml(s.problemTitle)}</h3>
+                                    <span class="problem-points-badge pts-${s.problemPoints || s.points}">+${s.problemPoints || s.points} PTS</span>
+                                </div>
+                                <div>${statusBadge}</div>
                             </div>
-                            <span class="meta-tag">${s.status}</span>
-                        </div>
 
-                        <img src="${s.imageUrl}" style="max-height:160px; border-radius:4px; border:1px solid #cbd5e1; cursor:pointer;" onclick="enlargeImage('${s.imageUrl}')" alt="Copie">
+                            <!-- LE THÈME ET LE PROBLÈME ÉCRIT EN HAUT POUR LE REMEMBER -->
+                            <div class="remember-problem-box">
+                                <div class="remember-problem-title">
+                                    <span>📌 Énoncé du Problème (Rappel du Sujet) :</span>
+                                </div>
+                                <div class="remember-problem-body" id="admin-remember-${s.id}">${s.problemStatement || 'Énoncé non disponible.'}</div>
+                            </div>
 
-                        <div style="display:flex; gap:8px; margin-top:8px;">
-                            <button class="btn-submit-action" style="background:var(--success); padding:4px 10px; font-size:11.5px;" onclick="reviewSubmission('${s.id}', 'approved')">✓ Valider (+${s.points} pts)</button>
-                            <button class="btn-cancel" style="background:#fee2e2; color:#b91c1c; font-size:11.5px; padding:4px 10px;" onclick="reviewSubmission('${s.id}', 'rejected')">✗ Refuser</button>
+                            <!-- Candidate Meta Info -->
+                            <div class="admin-candidate-meta">
+                                <span>👤 Candidat : <strong>${escapeHtml(s.username)}</strong> (${escapeHtml(s.userEmail)})</span>
+                                <span>•</span>
+                                <span>📅 Soumis le ${new Date(s.submittedAt).toLocaleString()}</span>
+                                ${s.updatedAt ? `<span>• <em>Modifié le ${new Date(s.updatedAt).toLocaleTimeString()}</em></span>` : ''}
+                            </div>
+
+                            <!-- Candidate Solution Text if any -->
+                            ${s.solutionText ? `
+                                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:10px 14px; margin-bottom:12px;">
+                                    <div style="font-size:11.5px; font-weight:700; color:var(--primary-dark); margin-bottom:4px;">📝 Démonstration / Justification rédigée :</div>
+                                    <div style="font-size:12.5px; line-height:1.6;" id="admin-cand-text-${s.id}">${formatTextWithLatex(s.solutionText)}</div>
+                                </div>
+                            ` : ''}
+
+                            <!-- Multi-Polycopies / Pages Gallery -->
+                            <div style="margin-bottom:14px;">
+                                <div style="font-size:12px; font-weight:700; color:#334155; margin-bottom:6px;">
+                                    📄 ${images.length} Polycopie(s) manuscrite(s) rédigée(s) (cliquer pour zoomer) :
+                                </div>
+                                <div class="polycope-grid">
+                                    ${images.map((img, idx) => `
+                                        <div class="polycope-item">
+                                            <span class="polycope-badge">Page ${idx + 1}</span>
+                                            <img src="${img}" onclick="enlargeImage('${img}')" alt="Page ${idx + 1}" title="Cliquer pour zoomer">
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                            <!-- Admin Evaluation & LaTeX Feedback Area with Toggle Preview -->
+                            <div style="background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; padding:12px; margin-top:12px;">
+                                <div class="preview-toggle-bar">
+                                    <label class="form-label" style="margin:0; font-size:11.5px;">Remarque / Justification de l'administrateur (LaTeX accepté) :</label>
+                                    <button type="button" id="btnAdminToggle-${s.id}" class="btn-toggle-preview" style="display:none;" onclick="toggleAdminReviewPreview('${s.id}')">
+                                        👁️ Voir prévisualisation LaTeX
+                                    </button>
+                                </div>
+                                <textarea id="adminReviewInput-${s.id}" class="form-textarea" rows="2" placeholder="Motif ou retour pédagogique (LaTeX avec $...$ accepté)..." oninput="handleAdminReviewInput('${s.id}', this.value)">${escapeHtml(s.reviewReason || '')}</textarea>
+                                <div id="adminReviewPreview-${s.id}" class="latex-preview-pane" style="display:none; background:#fff; margin-bottom:8px;"></div>
+
+                                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+                                    <button type="button" class="btn-cancel" style="background:#fee2e2; color:#b91c1c; font-weight:700; font-size:11.5px;" onclick="reviewSubmission('${s.id}', 'rejected')">
+                                        ❌ Refuser cette Copie
+                                    </button>
+                                    <button type="button" class="btn-submit-action" style="background:var(--success); font-weight:700; font-size:11.5px;" onclick="reviewSubmission('${s.id}', 'approved')">
+                                        ✅ Valider cette Copie (+${s.points} pts)
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                `).join('');
-            } catch (e) {}
+                    `;
+                }).join('');
+
+                // Render math in remember boxes and texts
+                subs.forEach(s => {
+                    const remEl = document.getElementById(`admin-remember-${s.id}`);
+                    if (remEl) renderMathSafely(remEl);
+                    const candTextEl = document.getElementById(`admin-cand-text-${s.id}`);
+                    if (candTextEl) renderMathSafely(candTextEl);
+                    const revInput = document.getElementById(`adminReviewInput-${s.id}`);
+                    if (revInput && revInput.value.trim().length > 0) {
+                        const btn = document.getElementById(`btnAdminToggle-${s.id}`);
+                        if (btn) btn.style.display = 'inline-flex';
+                    }
+                });
+            } catch (e) {
+                console.error("loadAdminSubmissions error:", e);
+            }
+        }
+
+        function handleAdminReviewInput(subId, val) {
+            const btn = document.getElementById(`btnAdminToggle-${subId}`);
+            if (!btn) return;
+            if (val && val.trim().length > 0) {
+                btn.style.display = 'inline-flex';
+            } else {
+                btn.style.display = 'none';
+                const pane = document.getElementById(`adminReviewPreview-${subId}`);
+                const input = document.getElementById(`adminReviewInput-${subId}`);
+                if (pane && pane.style.display !== 'none') {
+                    pane.style.display = 'none';
+                    input.style.display = 'block';
+                    btn.textContent = '👁️ Voir prévisualisation LaTeX';
+                }
+            }
+        }
+
+        function toggleAdminReviewPreview(subId) {
+            const input = document.getElementById(`adminReviewInput-${subId}`);
+            const pane = document.getElementById(`adminReviewPreview-${subId}`);
+            const btn = document.getElementById(`btnAdminToggle-${subId}`);
+
+            if (pane.style.display === 'none') {
+                const normalized = normalizeLatexMath(input.value);
+                pane.innerHTML = escapeHtml(normalized).replace(/\n/g, '<br>') || '<em>Aucune remarque.</em>';
+                renderMathSafely(pane);
+                input.style.display = 'none';
+                pane.style.display = 'block';
+                btn.textContent = '✏️ Revenir à la rédaction';
+            } else {
+                pane.style.display = 'none';
+                input.style.display = 'block';
+                input.focus();
+                btn.textContent = '👁️ Voir prévisualisation LaTeX';
+            }
         }
 
         async function reviewSubmission(subId, status) {
+            const reviewReasonInput = document.getElementById(`adminReviewInput-${subId}`);
+            const reviewReason = reviewReasonInput ? reviewReasonInput.value.trim() : '';
+
             try {
                 const res = await fetch(`/api/admin/submissions/${subId}/review`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser.id },
-                    body: JSON.stringify({ status })
+                    body: JSON.stringify({ status, reviewReason })
                 });
+                const data = await res.json();
                 if (res.ok) {
-                    showToast(status === 'approved' ? "Validé !" : "Refusé.");
-                    loadAdminSubmissions();
+                    showToast(status === 'approved' ? "Copie validée avec succès !" : "Copie refusée.");
+                    await loadAdminSubmissions();
+                    await loadProblems();
+                } else {
+                    showToast(data.error || "Erreur.", true);
                 }
-            } catch (e) {}
+            } catch (e) {
+                showToast("Erreur serveur.", true);
+            }
         }
 
         async function loadAdminUsers() {
