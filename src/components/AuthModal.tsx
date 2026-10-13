@@ -63,7 +63,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             </h2>
           </div>
           <p className="text-xs text-slate-500 mb-6">
-            Mémorial Assil Hamdi pour les Mathématiques Avancées
+            Portail des Mathématiques Avancées • MK Olympiades
           </p>
 
           <div className="flex border-b border-slate-200 mb-5">

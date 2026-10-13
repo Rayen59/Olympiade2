@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Olympiad, OlympiadSubmission, User } from '../types';
 import { store } from '../services/store';
 import { ImageModal } from './ImageModal';
@@ -27,13 +27,23 @@ interface OlympiadsViewProps {
 }
 
 export const OlympiadsView: React.FC<OlympiadsViewProps> = ({ currentUser, onOpenAuth, onOpenAdmin }) => {
-  const [olympiads, setOlympiads] = useState<Olympiad[]>([]);
-  const [selectedOlyId, setSelectedOlyId] = useState<string>('');
+  const [olympiads, setOlympiads] = useState<Olympiad[]>(() => store.getOlympiads());
+  const [selectedOlyId, setSelectedOlyId] = useState<string>(() => {
+    const list = store.getOlympiads();
+    return list[0]?.id || '';
+  });
   const [mySubmission, setMySubmission] = useState<OlympiadSubmission | null>(null);
 
   // Exam Countdown Timer State
-  const [examStartTime, setExamStartTime] = useState<number | null>(null);
+  const [examStartTime, setExamStartTime] = useState<number | null>(() => {
+    const active = store.getOlympiads()[0];
+    if (active && currentUser) {
+      return store.getExamStartTime(active.id, currentUser.id);
+    }
+    return null;
+  });
   const [secondsRemaining, setSecondsRemaining] = useState<number | null>(null);
+  const [examStartedNotification, setExamStartedNotification] = useState(false);
 
   // Candidate Submission Form State
   const [images, setImages] = useState<string[]>([]);
@@ -46,41 +56,59 @@ export const OlympiadsView: React.FC<OlympiadsViewProps> = ({ currentUser, onOpe
   const [zoomModalOpen, setZoomModalOpen] = useState(false);
   const [zoomImageIndex, setZoomImageIndex] = useState(0);
 
-  // Refresh
-  const reloadData = () => {
+  // Memoized Active Olympiad
+  const activeOly = useMemo(() => {
+    return (selectedOlyId ? olympiads.find((o) => o.id === selectedOlyId) : olympiads[0]) || olympiads[0];
+  }, [olympiads, selectedOlyId]);
+
+  // Refresh data on store updates
+  const reloadData = useCallback(() => {
     const list = store.getOlympiads();
     setOlympiads(list);
-    const active = selectedOlyId ? list.find((o) => o.id === selectedOlyId) : list[0];
-    if (active) {
-      if (!selectedOlyId) setSelectedOlyId(active.id);
-      if (currentUser) {
-        const sub = store.getMyOlympiadSubmission(active.id, currentUser.id);
-        setMySubmission(sub);
-        if (sub) {
-          setImages(sub.images || []);
-          setSolutionNotes(sub.solutionNotes || '');
-        }
-        const st = store.getExamStartTime(active.id, currentUser.id);
-        setExamStartTime(st);
-      }
+    const activeId = selectedOlyId || list[0]?.id || '';
+    if (activeId && currentUser) {
+      const sub = store.getMyOlympiadSubmission(activeId, currentUser.id);
+      setMySubmission(sub);
+      const st = store.getExamStartTime(activeId, currentUser.id);
+      setExamStartTime(st);
     }
-  };
+  }, [currentUser, selectedOlyId]);
 
   useEffect(() => {
     reloadData();
     return store.subscribe(reloadData);
-  }, [currentUser, selectedOlyId]);
+  }, [reloadData]);
 
-  const activeOly = olympiads.find((o) => o.id === selectedOlyId) || olympiads[0];
+  // Synchronize submission state when active Olympiad or user changes
+  useEffect(() => {
+    if (activeOly && currentUser) {
+      const sub = store.getMyOlympiadSubmission(activeOly.id, currentUser.id);
+      setMySubmission(sub);
+      if (sub) {
+        setImages(sub.images || []);
+        setSolutionNotes(sub.solutionNotes || '');
+      } else {
+        setImages([]);
+        setSolutionNotes('');
+      }
+      const st = store.getExamStartTime(activeOly.id, currentUser.id);
+      setExamStartTime(st);
+    } else {
+      setMySubmission(null);
+      setImages([]);
+      setSolutionNotes('');
+      setExamStartTime(null);
+    }
+  }, [activeOly?.id, currentUser?.id]);
 
-  // Countdown Interval Effect
+  // Countdown Interval Effect using primitive dependencies
   useEffect(() => {
     if (!activeOly || !examStartTime) {
       setSecondsRemaining(null);
       return;
     }
 
-    const totalSeconds = activeOly.totalDurationMinutes * 60;
+    const totalSeconds = (activeOly.totalDurationMinutes || 240) * 60;
 
     const updateTimer = () => {
       const elapsed = Math.floor((Date.now() - examStartTime) / 1000);
@@ -91,9 +119,39 @@ export const OlympiadsView: React.FC<OlympiadsViewProps> = ({ currentUser, onOpe
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [examStartTime, activeOly]);
+  }, [examStartTime, activeOly?.id, activeOly?.totalDurationMinutes]);
 
   const isExamTimeExpired = secondsRemaining !== null && secondsRemaining <= 0;
+
+  // Requirement: "Le chronomètre commence automatique après le téléchargement de olympiade"
+  const handleDownloadAndStartExam = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
+
+    if (!currentUser) {
+      onOpenAuth();
+      return;
+    }
+    if (!activeOly) return;
+
+    // Start timer automatically if not started
+    if (!examStartTime) {
+      const st = store.startExam(activeOly.id, currentUser.id);
+      setExamStartTime(st);
+      setExamStartedNotification(true);
+    }
+
+    // Trigger PDF download
+    const link = document.createElement('a');
+    link.href = activeOly.pdfUrl;
+    link.download = activeOly.pdfTitle || 'Sujet_Officiel_Olympiade_MK.pdf';
+    link.target = '_blank';
+    link.rel = 'noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleStartExam = () => {
     if (!currentUser) {
@@ -243,40 +301,62 @@ export const OlympiadsView: React.FC<OlympiadsViewProps> = ({ currentUser, onOpe
 
               <div className="bg-white/10 backdrop-blur-xs rounded-lg p-2.5">
                 <span className="block text-[10px] text-slate-300 font-bold uppercase">Sujet officiel PDF</span>
-                <a
-                  href={activeOly.pdfUrl}
-                  download={activeOly.pdfTitle}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-bold text-amber-300 hover:text-amber-200 underline mt-0.5"
+                <button
+                  onClick={handleDownloadAndStartExam}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 hover:text-amber-200 underline mt-0.5 cursor-pointer text-left"
+                  title="Télécharger le sujet (active automatiquement le chronomètre)"
                 >
-                  <FileDown className="w-3.5 h-3.5" /> Télécharger PDF
-                </a>
+                  <FileDown className="w-3.5 h-3.5 shrink-0" />
+                  <span>Télécharger PDF</span>
+                </button>
+                {!examStartTime && (
+                  <span className="block text-[9px] text-amber-300/90 font-medium mt-0.5">
+                    ⏱️ Démarre auto le chrono
+                  </span>
+                )}
               </div>
             </div>
           </div>
 
           <div className="p-5 sm:p-6 space-y-6">
+            {/* Notification Banner when started upon download */}
+            {examStartedNotification && (
+              <div className="p-3.5 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-xl text-xs flex items-center justify-between gap-3 shadow-xs animate-fadeIn">
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <div>
+                    <span className="font-bold">Sujet officiel téléchargé !</span> Le chronomètre de{' '}
+                    <strong>{activeOly.durationHours}h</strong> a commencé automatiquement. Vous pouvez composer et déposer votre copie avant la fin du temps imparti.
+                  </div>
+                </div>
+                <button
+                  onClick={() => setExamStartedNotification(false)}
+                  className="text-emerald-700 hover:text-emerald-950 font-bold px-2 py-1 rounded hover:bg-emerald-100 transition cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
             {/* ================= COUNTDOWN TIMER SECTION ================= */}
-            {/* Requirement: "ajouter a lui si il débute un chronomètre qui descent et lorsque il termine il ne leur envoyer aucun choses" */}
             <div className="p-4 rounded-xl border bg-slate-50 border-slate-200 flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                   <Clock className="w-4 h-4 text-blue-600" />
-                  Chronomètre d'Épreuve
+                  Chronomètre d'Épreuve Officielle
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
                   {examStartTime
                     ? isExamTimeExpired
                       ? 'L’épreuve est terminée. Le chronomètre est expiré.'
                       : 'Le chronomètre décompte le temps restant pour rédiger et téléverser vos copies.'
-                    : 'Démarrez le chronomètre officiel lorsque vous commencez à composer sur le sujet.'}
+                    : 'Le chronomètre commence automatiquement dès le téléchargement du sujet officiel de l’olympiade.'}
                 </p>
               </div>
 
               <div>
                 {examStartTime ? (
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <div
                       className={`font-mono text-xl sm:text-2xl font-black px-4 py-1.5 rounded-lg border shadow-inner ${
                         isExamTimeExpired
@@ -298,15 +378,28 @@ export const OlympiadsView: React.FC<OlympiadsViewProps> = ({ currentUser, onOpe
                         <Clock className="w-3.5 h-3.5" /> En cours
                       </span>
                     )}
+
+                    <button
+                      onClick={handleDownloadAndStartExam}
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0056b3] hover:text-[#0a3d75] underline cursor-pointer ml-1"
+                      title="Re-télécharger le fichier du sujet"
+                    >
+                      <FileDown className="w-3.5 h-3.5" /> Re-télécharger PDF
+                    </button>
                   </div>
                 ) : (
-                  <button
-                    onClick={handleStartExam}
-                    className="inline-flex items-center gap-2 bg-[#0056b3] hover:bg-[#0a3d75] text-white font-bold text-xs px-4 py-2 rounded-lg shadow-xs transition cursor-pointer"
-                  >
-                    <Play className="w-4 h-4" />
-                    Démarrer le Chronomètre de l'Épreuve
-                  </button>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                    <button
+                      onClick={handleDownloadAndStartExam}
+                      className="inline-flex items-center gap-2 bg-[#0056b3] hover:bg-[#0a3d75] text-white font-bold text-xs px-4 py-2.5 rounded-lg shadow-xs hover:shadow-md transition cursor-pointer"
+                    >
+                      <FileDown className="w-4 h-4" />
+                      Télécharger le Sujet & Démarrer le Chronomètre
+                    </button>
+                    <span className="text-[11px] text-slate-500 italic hidden sm:inline">
+                      (Démarrage automatique)
+                    </span>
+                  </div>
                 )}
               </div>
             </div>

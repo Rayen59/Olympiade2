@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { User, Olympiad, Submission, OlympiadSubmission } from '../types';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { User, Olympiad, Submission, OlympiadSubmission, Problem, OlympiadTheme } from '../types';
+import { OLYMPIAD_THEMES } from '../data/problemsData';
 import { store } from '../services/store';
 import { MathView } from './MathView';
 import { ImageModal } from './ImageModal';
+import { ProblemEditorModal } from './ProblemEditorModal';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import {
   ShieldAlert,
   Award,
@@ -16,7 +19,10 @@ import {
   Unlock,
   RotateCcw,
   Maximize2,
-  AlertCircle
+  AlertCircle,
+  FileQuestion,
+  Edit3,
+  Search
 } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -24,9 +30,22 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
-  const [subTab, setSubTab] = useState<'olympiads' | 'submissions' | 'users'>('olympiads');
-  const [olympiads, setOlympiads] = useState<Olympiad[]>([]);
-  const [selectedOlyId, setSelectedOlyId] = useState<string>('');
+  const [subTab, setSubTab] = useState<'problems' | 'olympiads' | 'submissions' | 'users'>('problems');
+  const [olympiads, setOlympiads] = useState<Olympiad[]>(() => store.getOlympiads());
+  const [selectedOlyId, setSelectedOlyId] = useState<string>(() => {
+    const list = store.getOlympiads();
+    return list[0]?.id || '';
+  });
+
+  // Problems Bank Management
+  const [allProblems, setAllProblems] = useState<Problem[]>([]);
+  const [probThemeFilter, setProbThemeFilter] = useState<string>('all');
+  const [probPointsFilter, setProbPointsFilter] = useState<number | 'all'>('all');
+  const [probSearch, setProbSearch] = useState<string>('');
+  const [isProblemEditorOpen, setIsProblemEditorOpen] = useState(false);
+  const [problemToEdit, setProblemToEdit] = useState<Problem | null>(null);
+  const [problemToDelete, setProblemToDelete] = useState<Problem | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Problem submissions filter
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
@@ -64,26 +83,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
   const [zoomModalOpen, setZoomModalOpen] = useState(false);
   const [zoomTitle, setZoomTitle] = useState('Polycopie');
 
-  const reload = () => {
+  const reload = useCallback(() => {
     const olys = store.getOlympiads();
     setOlympiads(olys);
-    if (!selectedOlyId && olys.length > 0) {
-      setSelectedOlyId(olys[0].id);
-      setGoldCutoff(olys[0].goldCutoff);
-      setSilverCutoff(olys[0].silverCutoff);
-      setBronzeCutoff(olys[0].bronzeCutoff);
-      setMentionCutoff(olys[0].honorableMentionCutoff);
-    }
     setAllSubmissions(store.getAllSubmissions());
     setAllUsers(store.getUsers());
-  };
+    setAllProblems(store.getProblems());
+  }, []);
 
   useEffect(() => {
     reload();
     return store.subscribe(reload);
-  }, [selectedOlyId]);
+  }, [reload]);
 
-  const activeOly = olympiads.find((o) => o.id === selectedOlyId) || olympiads[0];
+  const activeOly = useMemo(() => {
+    return olympiads.find((o) => o.id === selectedOlyId) || olympiads[0];
+  }, [olympiads, selectedOlyId]);
 
   useEffect(() => {
     if (activeOly) {
@@ -92,7 +107,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       setBronzeCutoff(activeOly.bronzeCutoff);
       setMentionCutoff(activeOly.honorableMentionCutoff);
     }
-  }, [selectedOlyId, activeOly]);
+  }, [activeOly?.id, activeOly?.goldCutoff, activeOly?.silverCutoff, activeOly?.bronzeCutoff, activeOly?.honorableMentionCutoff]);
 
   const olySubmissions = activeOly ? store.getOlympiadSubmissionsForAdmin(activeOly.id) : [];
 
@@ -210,10 +225,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       </div>
 
       {/* Admin Tabs */}
-      <div className="flex border-b border-slate-200 bg-white rounded-t-xl px-3 pt-2">
+      <div className="flex border-b border-slate-200 bg-white rounded-t-xl px-3 pt-2 overflow-x-auto">
+        <button
+          onClick={() => setSubTab('problems')}
+          className={`px-4 py-2 text-xs font-bold border-b-2 transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+            subTab === 'problems'
+              ? 'border-rose-600 text-rose-700'
+              : 'border-transparent text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <FileQuestion className="w-4 h-4" />
+          Banque de Problèmes ({allProblems.length})
+        </button>
+
         <button
           onClick={() => setSubTab('olympiads')}
-          className={`px-4 py-2 text-xs font-bold border-b-2 transition flex items-center gap-1.5 ${
+          className={`px-4 py-2 text-xs font-bold border-b-2 transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
             subTab === 'olympiads'
               ? 'border-rose-600 text-rose-700'
               : 'border-transparent text-slate-600 hover:text-slate-900'
@@ -225,7 +252,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
 
         <button
           onClick={() => setSubTab('submissions')}
-          className={`px-4 py-2 text-xs font-bold border-b-2 transition flex items-center gap-1.5 ${
+          className={`px-4 py-2 text-xs font-bold border-b-2 transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
             subTab === 'submissions'
               ? 'border-rose-600 text-rose-700'
               : 'border-transparent text-slate-600 hover:text-slate-900'
@@ -237,7 +264,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
 
         <button
           onClick={() => setSubTab('users')}
-          className={`px-4 py-2 text-xs font-bold border-b-2 transition flex items-center gap-1.5 ${
+          className={`px-4 py-2 text-xs font-bold border-b-2 transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
             subTab === 'users'
               ? 'border-rose-600 text-rose-700'
               : 'border-transparent text-slate-600 hover:text-slate-900'
@@ -247,6 +274,180 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
           Utilisateurs & Suspensions ({allUsers.length})
         </button>
       </div>
+
+      {/* ================= TAB 0: PROBLEMS BANK MANAGEMENT ================= */}
+      {subTab === 'problems' && (
+        <div className="space-y-4">
+          <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                  <FileQuestion className="w-4 h-4 text-[#0056b3]" />
+                  Gestion des Problèmes Mathématiques (5 Thèmes)
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Création, édition en direct avec LaTeX ($...$, $$...$$), réglage des points et suppression.
+                </p>
+              </div>
+
+              <button
+                onClick={() => {
+                  setProblemToEdit(null);
+                  setIsProblemEditorOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs hover:shadow-md transition cursor-pointer self-start sm:self-auto shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                Nouveau Problème
+              </button>
+            </div>
+
+            {/* Filters & Search */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Search */}
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
+                <input
+                  type="text"
+                  value={probSearch}
+                  onChange={(e) => setProbSearch(e.target.value)}
+                  placeholder="Rechercher par titre, numéro, énoncé..."
+                  className="w-full text-xs pl-8 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0056b3] outline-hidden"
+                />
+              </div>
+
+              {/* Theme filter */}
+              <div>
+                <select
+                  value={probThemeFilter}
+                  onChange={(e) => setProbThemeFilter(e.target.value)}
+                  className="w-full text-xs font-medium px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0056b3] outline-hidden"
+                >
+                  <option value="all">Tous les 5 thèmes</option>
+                  {OLYMPIAD_THEMES.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Points filter */}
+              <div>
+                <select
+                  value={probPointsFilter}
+                  onChange={(e) =>
+                    setProbPointsFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))
+                  }
+                  className="w-full text-xs font-medium px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#0056b3] outline-hidden"
+                >
+                  <option value="all">Tous les points</option>
+                  {[15, 30, 45, 60, 75].map((pts) => (
+                    <option key={pts} value={pts}>
+                      {pts} points
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Problems list */}
+            {(() => {
+              const filtered = allProblems.filter((p) => {
+                if (probThemeFilter !== 'all' && p.theme !== probThemeFilter) return false;
+                if (probPointsFilter !== 'all' && p.points !== probPointsFilter) return false;
+                if (probSearch.trim()) {
+                  const q = probSearch.toLowerCase();
+                  const inTitle = p.title.toLowerCase().includes(q);
+                  const inNum = (p.problemNumber || '').toLowerCase().includes(q);
+                  const inId = p.id.toLowerCase().includes(q);
+                  const inStatement = p.statement.toLowerCase().includes(q);
+                  if (!inTitle && !inNum && !inId && !inStatement) return false;
+                }
+                return true;
+              });
+
+              if (filtered.length === 0) {
+                return (
+                  <div className="p-8 text-center text-slate-400 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                    Aucun problème ne correspond aux filtres.
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-3">
+                  <div className="text-[11px] text-slate-500 font-semibold flex items-center justify-between">
+                    <span>{filtered.length} problème(s) trouvé(s)</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    {filtered.map((prob) => {
+                      const numLabel =
+                        prob.problemNumber ||
+                        (prob.id.split('-').length >= 2 && !isNaN(Number(prob.id.split('-')[1]))
+                          ? prob.id.split('-')[1]
+                          : prob.id);
+
+                      return (
+                        <div
+                          key={prob.id}
+                          className="p-4 bg-white border border-slate-200 hover:border-blue-300 rounded-xl shadow-2xs transition flex flex-col md:flex-row md:items-center justify-between gap-3"
+                        >
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center gap-2 flex-wrap text-xs">
+                              <span className="font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+                                N° {numLabel}
+                              </span>
+                              <span className="font-bold text-[#0056b3] bg-blue-50 px-2.5 py-0.5 rounded border border-blue-100">
+                                {prob.theme}
+                              </span>
+                              <span className="font-extrabold text-white bg-slate-700 px-2 py-0.5 rounded text-[11px]">
+                                {prob.points} pts
+                              </span>
+                            </div>
+
+                            <h3 className="font-bold text-sm text-slate-900">{prob.title}</h3>
+
+                            <div className="p-2.5 bg-slate-50 rounded-lg text-xs text-slate-700 border-l-2 border-[#0056b3] max-h-24 overflow-y-auto">
+                              <MathView content={prob.statement} />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                            <button
+                              onClick={() => {
+                                setProblemToEdit(prob);
+                                setIsProblemEditorOpen(true);
+                              }}
+                              className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold rounded-lg transition flex items-center gap-1.5 cursor-pointer"
+                              title="Modifier ce problème"
+                            >
+                              <Edit3 className="w-3.5 h-3.5 text-amber-600" />
+                              <span>Modifier</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setProblemToDelete(prob);
+                                setIsDeleteModalOpen(true);
+                              }}
+                              className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold rounded-lg transition flex items-center gap-1.5 cursor-pointer"
+                              title="Supprimer ce problème"
+                            >
+                              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                              <span>Supprimer</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* ================= TAB 1: OLYMPIADS & GRADING ================= */}
       {subTab === 'olympiads' && (
@@ -861,6 +1062,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         isOpen={zoomModalOpen}
         onClose={() => setZoomModalOpen(false)}
         title={zoomTitle}
+      />
+
+      {/* Problem Editor Modal */}
+      <ProblemEditorModal
+        isOpen={isProblemEditorOpen}
+        onClose={() => {
+          setIsProblemEditorOpen(false);
+          setProblemToEdit(null);
+        }}
+        problemToEdit={problemToEdit}
+        defaultTheme={probThemeFilter !== 'all' ? (probThemeFilter as OlympiadTheme) : undefined}
+        onSaved={() => {
+          reload();
+        }}
+      />
+
+      {/* Confirm Delete Modal */}
+      <ConfirmDeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setProblemToDelete(null);
+        }}
+        problem={problemToDelete}
+        onConfirm={() => {
+          if (problemToDelete) {
+            store.deleteProblem(problemToDelete.id);
+            setProblemToDelete(null);
+            reload();
+          }
+        }}
       />
     </div>
   );

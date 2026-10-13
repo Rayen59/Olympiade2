@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ZoomIn, ZoomOut, RotateCw, RefreshCw, X, ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { ZoomIn, ZoomOut, RotateCw, RefreshCw, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface ImageModalProps {
   images: string[];
@@ -24,14 +24,51 @@ export const ImageModal: React.FC<ImageModalProps> = ({
   const dragStartRef = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    setCurrentIndex(initialIndex);
-    resetTransform();
-  }, [initialIndex, isOpen]);
+  const resetTransform = useCallback(() => {
+    setZoom(1);
+    setRotation(0);
+    setPosition({ x: 0, y: 0 });
+  }, []);
 
+  const handleZoomIn = useCallback(() => {
+    setZoom((prev) => Math.min(prev + 0.35, 5));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoom((prev) => {
+      const next = Math.max(prev - 0.35, 0.5);
+      if (next <= 1) setPosition({ x: 0, y: 0 });
+      return next;
+    });
+  }, []);
+
+  const handleRotate = useCallback(() => {
+    setRotation((prev) => (prev + 90) % 360);
+  }, []);
+
+  const handlePrev = useCallback(() => {
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+    resetTransform();
+  }, [images.length, resetTransform]);
+
+  const handleNext = useCallback(() => {
+    setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+    resetTransform();
+  }, [images.length, resetTransform]);
+
+  // Sync index and reset transforms on open or index change
   useEffect(() => {
+    if (isOpen) {
+      setCurrentIndex(initialIndex);
+      resetTransform();
+    }
+  }, [initialIndex, isOpen, resetTransform]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (!isOpen) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
       if (e.key === 'Escape') onClose();
       if (e.key === 'ArrowRight' && images.length > 1) handleNext();
       if (e.key === 'ArrowLeft' && images.length > 1) handlePrev();
@@ -39,45 +76,10 @@ export const ImageModal: React.FC<ImageModalProps> = ({
       if (e.key === '-') handleZoomOut();
       if (e.key === '0') resetTransform();
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, images.length, currentIndex, zoom]);
-
-  if (!isOpen || images.length === 0) return null;
-
-  const currentImage = images[currentIndex] || images[0];
-
-  const resetTransform = () => {
-    setZoom(1);
-    setRotation(0);
-    setPosition({ x: 0, y: 0 });
-  };
-
-  const handleZoomIn = () => {
-    setZoom((prev) => Math.min(prev + 0.35, 5));
-  };
-
-  const handleZoomOut = () => {
-    setZoom((prev) => {
-      const next = Math.max(prev - 0.35, 0.5);
-      if (next <= 1) setPosition({ x: 0, y: 0 });
-      return next;
-    });
-  };
-
-  const handleRotate = () => {
-    setRotation((prev) => (prev + 90) % 360);
-  };
-
-  const handlePrev = () => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
-    resetTransform();
-  };
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
-    resetTransform();
-  };
+  }, [isOpen, images.length, handleNext, handlePrev, handleZoomIn, handleZoomOut, resetTransform, onClose]);
 
   // Wheel zoom on PC
   const handleWheel = (e: React.WheelEvent) => {
@@ -115,6 +117,10 @@ export const ImageModal: React.FC<ImageModalProps> = ({
     setIsDragging(false);
   };
 
+  if (!isOpen || images.length === 0) return null;
+
+  const currentImage = images[currentIndex] || images[0];
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col select-none">
       {/* Top Toolbar */}
@@ -133,7 +139,7 @@ export const ImageModal: React.FC<ImageModalProps> = ({
           <div className="flex items-center bg-slate-800/90 rounded-lg p-1 border border-slate-700">
             <button
               onClick={handleZoomOut}
-              className="p-1.5 hover:bg-slate-700 rounded text-slate-200 hover:text-white transition"
+              className="p-1.5 hover:bg-slate-700 rounded text-slate-200 hover:text-white transition cursor-pointer"
               title="Zoom arrière (-)"
               aria-label="Zoom arrière"
             >
@@ -144,7 +150,7 @@ export const ImageModal: React.FC<ImageModalProps> = ({
             </span>
             <button
               onClick={handleZoomIn}
-              className="p-1.5 hover:bg-slate-700 rounded text-slate-200 hover:text-white transition"
+              className="p-1.5 hover:bg-slate-700 rounded text-slate-200 hover:text-white transition cursor-pointer"
               title="Zoom avant (+)"
               aria-label="Zoom avant"
             >
@@ -154,7 +160,7 @@ export const ImageModal: React.FC<ImageModalProps> = ({
 
           <button
             onClick={handleRotate}
-            className="p-2 bg-slate-800/90 hover:bg-slate-700 rounded-lg border border-slate-700 text-slate-200 hover:text-white transition"
+            className="p-2 bg-slate-800/90 hover:bg-slate-700 rounded-lg border border-slate-700 text-slate-200 hover:text-white transition cursor-pointer"
             title="Pivoter 90°"
             aria-label="Pivoter 90°"
           >
@@ -163,7 +169,7 @@ export const ImageModal: React.FC<ImageModalProps> = ({
 
           <button
             onClick={resetTransform}
-            className="p-2 bg-slate-800/90 hover:bg-slate-700 rounded-lg border border-slate-700 text-slate-200 hover:text-white transition"
+            className="p-2 bg-slate-800/90 hover:bg-slate-700 rounded-lg border border-slate-700 text-slate-200 hover:text-white transition cursor-pointer"
             title="Réinitialiser le zoom (0)"
             aria-label="Réinitialiser"
           >
@@ -172,7 +178,7 @@ export const ImageModal: React.FC<ImageModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 bg-rose-600/90 hover:bg-rose-600 text-white rounded-lg transition ml-2"
+            className="p-2 bg-rose-600/90 hover:bg-rose-600 text-white rounded-lg transition ml-2 cursor-pointer"
             title="Fermer (Échap)"
             aria-label="Fermer"
           >
@@ -198,7 +204,7 @@ export const ImageModal: React.FC<ImageModalProps> = ({
           <>
             <button
               onClick={handlePrev}
-              className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-slate-900/70 hover:bg-slate-800 text-white border border-slate-700 backdrop-blur transition z-20"
+              className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-slate-900/70 hover:bg-slate-800 text-white border border-slate-700 backdrop-blur transition z-20 cursor-pointer"
               title="Page précédente"
               aria-label="Page précédente"
             >
@@ -206,7 +212,7 @@ export const ImageModal: React.FC<ImageModalProps> = ({
             </button>
             <button
               onClick={handleNext}
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-slate-900/70 hover:bg-slate-800 text-white border border-slate-700 backdrop-blur transition z-20"
+              className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-slate-900/70 hover:bg-slate-800 text-white border border-slate-700 backdrop-blur transition z-20 cursor-pointer"
               title="Page suivante"
               aria-label="Page suivante"
             >

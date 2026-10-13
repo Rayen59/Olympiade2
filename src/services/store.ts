@@ -1,4 +1,4 @@
-import { User, Problem, Submission, Course, ForumTopic, Olympiad, OlympiadSubmission } from '../types';
+import { User, Problem, Submission, Course, ForumTopic, Olympiad, OlympiadSubmission, OlympiadTheme } from '../types';
 import { INITIAL_PROBLEMS } from '../data/problemsData';
 import { COURSES_DATA } from '../data/coursesData';
 
@@ -102,8 +102,10 @@ class StoreService {
         if (!parsed.users || !parsed.users.some((u: User) => u.email === DEFAULT_ADMIN.email)) {
           parsed.users = [DEFAULT_ADMIN, ...(parsed.users || [])];
         }
-        // Always refresh problems & courses to latest transcribed bank
-        parsed.problems = INITIAL_PROBLEMS;
+        // Preserve user problems if present, else seed with INITIAL_PROBLEMS
+        if (!Array.isArray(parsed.problems) || parsed.problems.length === 0) {
+          parsed.problems = INITIAL_PROBLEMS;
+        }
         parsed.courses = COURSES_DATA;
         if (!parsed.olympiads || parsed.olympiads.length === 0) {
           parsed.olympiads = [DEFAULT_OLYMPIAD];
@@ -293,6 +295,92 @@ class StoreService {
 
   public getProblemById(id: string): Problem | undefined {
     return this.data.problems.find((p) => p.id === id);
+  }
+
+  public createProblem(problemData: {
+    problemNumber?: string;
+    theme: OlympiadTheme;
+    points: number;
+    title: string;
+    statement: string;
+    difficulty?: string;
+  }): Problem {
+    const themePrefixMap: Record<OlympiadTheme, string> = {
+      'Théorie des Nombres': 'nt',
+      'Géométrie': 'geo',
+      'Combinatoire': 'comb',
+      'Inégalités': 'ineq',
+      'Équations Fonctionnelles': 'fe'
+    };
+    const prefix = themePrefixMap[problemData.theme] || 'prob';
+    const numPart = problemData.problemNumber
+      ? problemData.problemNumber.replace(/\D/g, '') || `${Date.now()}`
+      : `${Date.now()}`;
+    const id = `${prefix}-${numPart}-${Math.random().toString(36).substring(2, 6)}`;
+
+    const newProblem: Problem = {
+      id,
+      problemNumber: problemData.problemNumber?.trim() || undefined,
+      theme: problemData.theme,
+      points: Number(problemData.points),
+      difficulty: problemData.difficulty || `${problemData.points} pts`,
+      title: problemData.title.trim(),
+      statement: problemData.statement.trim(),
+      createdAt: new Date().toISOString()
+    };
+
+    this.data.problems.unshift(newProblem);
+    this.save();
+    return newProblem;
+  }
+
+  public updateProblem(
+    id: string,
+    updates: Partial<Omit<Problem, 'id'>> & { problemNumber?: string }
+  ): Problem | null {
+    const idx = this.data.problems.findIndex((p) => p.id === id);
+    if (idx === -1) return null;
+
+    const existing = this.data.problems[idx];
+    const points = updates.points !== undefined ? Number(updates.points) : existing.points;
+    const updated: Problem = {
+      ...existing,
+      ...updates,
+      points,
+      difficulty: updates.difficulty || `${points} pts`,
+      title: updates.title !== undefined ? updates.title.trim() : existing.title,
+      statement: updates.statement !== undefined ? updates.statement.trim() : existing.statement,
+      problemNumber: updates.problemNumber !== undefined ? (updates.problemNumber.trim() || undefined) : existing.problemNumber,
+      updatedAt: new Date().toISOString()
+    };
+
+    this.data.problems[idx] = updated;
+
+    // Update problem title and points in existing submissions
+    this.data.submissions.forEach((s) => {
+      if (s.problemId === id) {
+        if (updates.title) s.problemTitle = updates.title.trim();
+        if (updates.theme) s.category = updates.theme;
+        if (updates.points !== undefined) s.points = points;
+      }
+    });
+
+    this.save();
+    return updated;
+  }
+
+  public deleteProblem(id: string): boolean {
+    const idx = this.data.problems.findIndex((p) => p.id === id);
+    if (idx === -1) return false;
+
+    this.data.problems.splice(idx, 1);
+    this.save();
+    return true;
+  }
+
+  public resetProblemsToInitial(): void {
+    this.data.problems = [...INITIAL_PROBLEMS];
+    this.save();
   }
 
   public getMySubmission(problemId: string, userId: string): Submission | null {
@@ -793,7 +881,7 @@ class StoreService {
       if (text.includes(w)) {
         return {
           approved: false,
-          reason: `Contenu rejeté : terme non autorisé "${w}". Respectez les règles académiques du Mémorial Assil Hamdi.`
+          reason: `Contenu rejeté : terme non autorisé "${w}". Respectez les règles académiques de la plateforme MK Olympiades.`
         };
       }
     }

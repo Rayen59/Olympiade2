@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, BookOpen, Award, BookMarked, MessageSquare, Trophy, ShieldAlert, User as UserIcon, LogOut, Gamepad2, Info } from 'lucide-react';
+import { ArrowLeft, BookOpen, Award, BookMarked, MessageSquare, Trophy, ShieldAlert, User as UserIcon, LogOut } from 'lucide-react';
 import { AppTab, User } from '../types';
 
 interface NavbarProps {
@@ -10,7 +10,6 @@ interface NavbarProps {
   onLogout: () => void;
   onGoBack: () => void;
   canGoBack: boolean;
-  onOpenMemorial: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -20,8 +19,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAuth,
   onLogout,
   onGoBack,
-  canGoBack,
-  onOpenMemorial
+  canGoBack
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-xs">
@@ -119,18 +117,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             Classement
           </button>
 
-          <button
-            onClick={() => onSelectTab('games')}
-            className={`px-2.5 py-1 text-xs font-semibold rounded flex items-center gap-1.5 transition ${
-              activeTab === 'games'
-                ? 'bg-blue-50 text-[#0056b3] border-b-2 border-[#0056b3]'
-                : 'text-slate-600 hover:text-[#0056b3] hover:bg-slate-50'
-            }`}
-          >
-            <Gamepad2 className="w-3.5 h-3.5" />
-            Jeux
-          </button>
-
           {currentUser?.role === 'admin' && (
             <button
               onClick={() => onSelectTab('admin')}
@@ -146,17 +132,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
         </nav>
 
-        {/* Right: User Pill / Auth / Memorial Trigger */}
+        {/* Right: User Pill / Auth */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={onOpenMemorial}
-            className="p-1.5 text-slate-500 hover:text-[#0056b3] hover:bg-slate-100 rounded-md transition"
-            title="Mémorial Assil Hamdi & À propos"
-            aria-label="Mémorial"
-          >
-            <Info className="w-4 h-4" />
-          </button>
-
           {currentUser ? (
             <div className="flex items-center gap-1.5">
               <button
@@ -234,12 +211,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           className={`px-2 py-1 rounded ${activeTab === 'leaderboard' ? 'text-[#0056b3] font-bold bg-white' : ''}`}
         >
           Classement
-        </button>
-        <button
-          onClick={() => onSelectTab('games')}
-          className={`px-2 py-1 rounded ${activeTab === 'games' ? 'text-[#0056b3] font-bold bg-white' : ''}`}
-        >
-          Jeux
         </button>
         {currentUser?.role === 'admin' && (
           <button

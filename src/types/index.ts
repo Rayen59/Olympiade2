@@ -26,11 +26,14 @@ export type OlympiadTheme =
 
 export interface Problem {
   id: string;
+  problemNumber?: string;
   theme: OlympiadTheme;
   points: number;
   difficulty: string;
   title: string;
   statement: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type SubmissionStatus = 'pending' | 'approved' | 'rejected';
@@ -135,5 +138,4 @@ export type AppTab =
   | 'forum'
   | 'leaderboard'
   | 'admin'
-  | 'profile'
-  | 'games';
+  | 'profile';

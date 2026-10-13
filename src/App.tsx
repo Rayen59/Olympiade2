@@ -9,9 +9,7 @@ import { ForumView } from './components/ForumView';
 import { LeaderboardView } from './components/LeaderboardView';
 import { UserProfileView } from './components/UserProfileView';
 import { AdminPanel } from './components/AdminPanel';
-import { MiniGamesView } from './components/MiniGamesView';
 import { AuthModal } from './components/AuthModal';
-import { MemorialModal } from './components/MemorialModal';
 
 export const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<AppTab>('problems');
@@ -19,7 +17,6 @@ export const App: React.FC = () => {
   const [historyStack, setHistoryStack] = useState<AppTab[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(store.getCurrentUser());
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isMemorialOpen, setIsMemorialOpen] = useState(false);
 
   useEffect(() => {
     const handleStoreChange = () => {
@@ -67,7 +64,6 @@ export const App: React.FC = () => {
         }}
         onGoBack={handleGoBack}
         canGoBack={canGoBack}
-        onOpenMemorial={() => setIsMemorialOpen(true)}
       />
 
       {/* Main Content View */}
@@ -113,31 +109,23 @@ export const App: React.FC = () => {
         {currentTab === 'admin' && currentUser?.role === 'admin' && (
           <AdminPanel currentUser={currentUser} />
         )}
-
-        {currentTab === 'games' && <MiniGamesView />}
       </main>
 
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 mt-10 py-5 text-center text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-[#0a3d75]">Mémorial Assil Hamdi pour les Mathématiques Avancées</span>
+            <span className="font-bold text-[#0a3d75]">MK Olympiades</span>
             <span>•</span>
-            <span>MK Olympiades</span>
+            <span>Portail des Mathématiques Avancées</span>
           </div>
 
           <div className="flex items-center gap-4 text-slate-400">
             <button
-              onClick={() => setIsMemorialOpen(true)}
-              className="hover:text-blue-700 underline transition"
-            >
-              À propos & Dédicace
-            </button>
-            <button
               onClick={() => handleSelectTab('courses')}
               className="hover:text-blue-700 transition"
             >
-              Théorie
+              Théorie & Cours
             </button>
             <button
               onClick={() => handleSelectTab('forum')}
@@ -156,12 +144,6 @@ export const App: React.FC = () => {
         onSuccess={() => {
           setCurrentUser(store.getCurrentUser());
         }}
-      />
-
-      {/* Memorial Tribute Modal */}
-      <MemorialModal
-        isOpen={isMemorialOpen}
-        onClose={() => setIsMemorialOpen(false)}
       />
     </div>
   );
