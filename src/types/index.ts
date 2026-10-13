@@ -108,6 +108,8 @@ export interface Olympiad {
   honorableMentionCutoff: number;
   pdfUrl: string;
   pdfTitle: string;
+  pdfFileSize?: string;
+  pdfUpdatedAt?: string;
   status: 'active' | 'grading' | 'closed';
   resultsPublished: boolean;
   createdAt: string;

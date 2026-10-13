@@ -6,6 +6,7 @@ import { MathView } from './MathView';
 import { ImageModal } from './ImageModal';
 import { ProblemEditorModal } from './ProblemEditorModal';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { AdminOlympiadModal } from './AdminOlympiadModal';
 import {
   ShieldAlert,
   Award,
@@ -22,7 +23,11 @@ import {
   AlertCircle,
   FileQuestion,
   Edit3,
-  Search
+  Search,
+  Smartphone,
+  Upload,
+  FileText,
+  Clock
 } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -69,14 +74,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
   const [bronzeCutoff, setBronzeCutoff] = useState<number>(12);
   const [mentionCutoff, setMentionCutoff] = useState<number>(7);
 
+  // Edit Olympiad Modal State
+  const [isAdminOlyModalOpen, setIsAdminOlyModalOpen] = useState(false);
+
   // New Olympiad Creation
   const [isCreatingOly, setIsCreatingOly] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
-  const [newHours, setNewHours] = useState(4);
+  const [newTotalMinutes, setNewTotalMinutes] = useState(240);
   const [newProbCount, setNewProbCount] = useState(4);
   const [newPtsPerProb, setNewPtsPerProb] = useState(7);
-  const [newPdfUrl, setNewPdfUrl] = useState('/assets/olympiade_mk_sujet_officiel.pdf');
+  const [newPdfDataUrl, setNewPdfDataUrl] = useState('/assets/olympiade_mk_sujet_officiel.pdf');
+  const [newPdfFileName, setNewPdfFileName] = useState('Sujet_Officiel_Olympiade.pdf');
+  const [newPdfFileSize, setNewPdfFileSize] = useState('');
 
   // Zoom Lightbox
   const [zoomImages, setZoomImages] = useState<string[]>([]);
@@ -168,12 +178,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
   const handleCreateNewOly = (e: React.FormEvent) => {
     e.preventDefault();
     const totalPts = newProbCount * newPtsPerProb;
+    const durationHours = Math.floor(newTotalMinutes / 60);
+    const durationMinutes = newTotalMinutes % 60;
     const created = store.createOlympiad({
       title: newTitle.trim(),
-      description: newDesc.trim() || `Olympiade officielle MK de ${newHours}h.`,
-      durationHours: newHours,
-      durationMinutes: 0,
-      totalDurationMinutes: newHours * 60,
+      description: newDesc.trim() || `Olympiade officielle MK de ${newTotalMinutes} minutes.`,
+      durationHours,
+      durationMinutes,
+      totalDurationMinutes: newTotalMinutes,
       problemCount: newProbCount,
       pointsPerProblem: newPtsPerProb,
       totalPoints: totalPts,
@@ -181,8 +193,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       silverCutoff: Math.round(totalPts * 0.65),
       bronzeCutoff: Math.round(totalPts * 0.45),
       honorableMentionCutoff: Math.max(1, newPtsPerProb),
-      pdfUrl: newPdfUrl || '/assets/olympiade_mk_sujet_officiel.pdf',
-      pdfTitle: 'Sujet_Olympiade_MK.pdf',
+      pdfUrl: newPdfDataUrl || '/assets/olympiade_mk_sujet_officiel.pdf',
+      pdfTitle: newPdfFileName || 'Sujet_Olympiade_MK.pdf',
+      pdfFileSize: newPdfFileSize || undefined,
       status: 'active',
       resultsPublished: false
     });
@@ -469,7 +482,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                 </select>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {activeOly && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAdminOlyModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold bg-amber-50 text-amber-900 hover:bg-amber-100 px-3 py-1.5 rounded-lg border border-amber-300 transition cursor-pointer"
+                    title="Modifier la durée en minutes et importer un PDF depuis votre téléphone ou PC"
+                  >
+                    <Smartphone className="w-3.5 h-3.5 text-amber-700" />
+                    Modifier Sujet PDF & Minutes
+                  </button>
+                )}
+
                 <button
                   onClick={() => setIsCreatingOly(true)}
                   className="inline-flex items-center gap-1 text-xs font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-200 transition"
@@ -989,18 +1014,47 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-700 mb-1">Durée (heures) :</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={12}
-                    value={newHours}
-                    onChange={(e) => setNewHours(parseInt(e.target.value) || 4)}
-                    className="w-full p-2 border border-slate-300 rounded"
-                  />
+              {/* Duration in Minutes with Presets */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-slate-800 flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 text-blue-600" />
+                    Durée de l'Épreuve en Minutes :
+                  </label>
+                  <span className="font-mono font-bold text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                    {newTotalMinutes} min ({Math.floor(newTotalMinutes / 60)}h{newTotalMinutes % 60 > 0 ? ` ${newTotalMinutes % 60}min` : ''})
+                  </span>
                 </div>
+
+                <div className="flex flex-wrap gap-1">
+                  {[60, 120, 180, 240, 300].map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setNewTotalMinutes(m)}
+                      className={`px-2 py-0.5 text-[10px] font-bold rounded border transition cursor-pointer ${
+                        newTotalMinutes === m
+                          ? 'bg-[#0056b3] text-white border-[#0056b3]'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      {m} min
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="number"
+                  min={1}
+                  max={1440}
+                  value={newTotalMinutes}
+                  onChange={(e) => setNewTotalMinutes(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full p-2 bg-white border border-slate-300 rounded text-xs font-bold font-mono"
+                  placeholder="Minutes (ex: 240)"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-700 mb-1">Nombre Problèmes :</label>
                   <input
@@ -1009,7 +1063,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                     max={10}
                     value={newProbCount}
                     onChange={(e) => setNewProbCount(parseInt(e.target.value) || 4)}
-                    className="w-full p-2 border border-slate-300 rounded"
+                    className="w-full p-2 border border-slate-300 rounded font-bold"
                   />
                 </div>
                 <div>
@@ -1020,33 +1074,76 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                     max={20}
                     value={newPtsPerProb}
                     onChange={(e) => setNewPtsPerProb(parseInt(e.target.value) || 7)}
-                    className="w-full p-2 border border-slate-300 rounded"
+                    className="w-full p-2 border border-slate-300 rounded font-bold"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">Lien PDF Sujet :</label>
-                <input
-                  type="text"
-                  value={newPdfUrl}
-                  onChange={(e) => setNewPdfUrl(e.target.value)}
-                  placeholder="/assets/olympiade_mk_sujet_officiel.pdf"
-                  className="w-full p-2 border border-slate-300 rounded"
-                />
+              {/* Direct PDF Upload from Phone or PC */}
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                <label className="block text-[11px] font-bold text-slate-800 flex items-center gap-1">
+                  <Smartphone className="w-3.5 h-3.5 text-blue-600" />
+                  Importer le Sujet PDF depuis votre Téléphone / Appareil :
+                </label>
+
+                <div className="border border-dashed border-blue-300 bg-white rounded-lg p-3 text-center">
+                  <input
+                    type="file"
+                    id="new-oly-pdf-upload"
+                    accept="application/pdf,.pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        const res = ev.target?.result as string;
+                        if (res) {
+                          setNewPdfDataUrl(res);
+                          setNewPdfFileName(file.name);
+                          const k = 1024;
+                          const s = ['Octets', 'Ko', 'Mo'];
+                          const i = Math.floor(Math.log(file.size) / Math.log(k));
+                          setNewPdfFileSize(parseFloat((file.size / Math.pow(k, i)).toFixed(1)) + ' ' + s[i]);
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                      e.target.value = '';
+                    }}
+                    className="hidden"
+                  />
+
+                  <label
+                    htmlFor="new-oly-pdf-upload"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0056b3] hover:bg-[#0a3d75] text-white text-xs font-bold rounded-lg cursor-pointer transition shadow-2xs"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    Choisir un fichier PDF sur le téléphone
+                  </label>
+
+                  <div className="mt-2 text-[11px] text-slate-600 truncate font-medium">
+                    {newPdfFileName ? (
+                      <span className="text-emerald-700 font-bold flex items-center justify-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        {newPdfFileName} {newPdfFileSize ? `(${newPdfFileSize})` : ''}
+                      </span>
+                    ) : (
+                      'Aucun fichier sélectionné (utilise le sujet officiel par défaut)'
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="pt-2 border-t border-slate-100 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setIsCreatingOly(false)}
-                  className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded font-semibold"
+                  className="px-3 py-1.5 text-slate-600 hover:bg-slate-100 rounded font-semibold cursor-pointer"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded shadow-xs"
+                  className="px-4 py-1.5 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded shadow-xs cursor-pointer"
                 >
                   Créer l'Olympiade
                 </button>
@@ -1055,6 +1152,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
           </div>
         </div>
       )}
+
+      {/* Admin Olympiad Edit Modal (PDF from phone & minutes) */}
+      <AdminOlympiadModal
+        isOpen={isAdminOlyModalOpen}
+        onClose={() => setIsAdminOlyModalOpen(false)}
+        olympiad={activeOly || null}
+        onUpdated={() => reload()}
+      />
 
       {/* Lightbox Zoom for admin */}
       <ImageModal

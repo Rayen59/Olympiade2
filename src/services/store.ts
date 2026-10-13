@@ -520,6 +520,63 @@ class StoreService {
     return true;
   }
 
+  public updateOlympiad(olyId: string, updates: Partial<Olympiad>): Olympiad | null {
+    const oly = this.getOlympiadById(olyId);
+    if (!oly) return null;
+
+    if (updates.totalDurationMinutes !== undefined) {
+      const totalMins = Math.max(1, Number(updates.totalDurationMinutes));
+      oly.totalDurationMinutes = totalMins;
+      oly.durationHours = Math.floor(totalMins / 60);
+      oly.durationMinutes = totalMins % 60;
+    } else if (updates.durationHours !== undefined || updates.durationMinutes !== undefined) {
+      const h = updates.durationHours !== undefined ? Math.max(0, Number(updates.durationHours)) : oly.durationHours;
+      const m = updates.durationMinutes !== undefined ? Math.max(0, Number(updates.durationMinutes)) : oly.durationMinutes;
+      oly.durationHours = h;
+      oly.durationMinutes = m;
+      oly.totalDurationMinutes = Math.max(1, h * 60 + m);
+    }
+
+    if (updates.title !== undefined) oly.title = updates.title.trim();
+    if (updates.description !== undefined) oly.description = updates.description.trim();
+    if (updates.pdfUrl !== undefined) oly.pdfUrl = updates.pdfUrl;
+    if (updates.pdfTitle !== undefined) oly.pdfTitle = updates.pdfTitle;
+    if (updates.pdfFileSize !== undefined) oly.pdfFileSize = updates.pdfFileSize;
+    if (updates.pdfUpdatedAt !== undefined) oly.pdfUpdatedAt = updates.pdfUpdatedAt;
+    if (updates.problemCount !== undefined) oly.problemCount = Number(updates.problemCount);
+    if (updates.pointsPerProblem !== undefined) oly.pointsPerProblem = Number(updates.pointsPerProblem);
+    if (updates.totalPoints !== undefined) oly.totalPoints = Number(updates.totalPoints);
+    if (updates.goldCutoff !== undefined) oly.goldCutoff = Number(updates.goldCutoff);
+    if (updates.silverCutoff !== undefined) oly.silverCutoff = Number(updates.silverCutoff);
+    if (updates.bronzeCutoff !== undefined) oly.bronzeCutoff = Number(updates.bronzeCutoff);
+    if (updates.honorableMentionCutoff !== undefined) oly.honorableMentionCutoff = Number(updates.honorableMentionCutoff);
+    if (updates.status !== undefined) oly.status = updates.status;
+    if (updates.resultsPublished !== undefined) oly.resultsPublished = updates.resultsPublished;
+
+    this.save();
+    return oly;
+  }
+
+  public resetExamTimer(olyId: string, userId?: string) {
+    try {
+      const stored = localStorage.getItem(EXAM_TIMERS_KEY);
+      if (stored) {
+        const timers = JSON.parse(stored);
+        if (userId) {
+          delete timers[`${olyId}_${userId}`];
+        } else {
+          Object.keys(timers).forEach((k) => {
+            if (k.startsWith(`${olyId}_`)) delete timers[k];
+          });
+        }
+        localStorage.setItem(EXAM_TIMERS_KEY, JSON.stringify(timers));
+      }
+    } catch {
+      // ignore
+    }
+    this.notify();
+  }
+
   public deleteOlympiad(olyId: string) {
     this.data.olympiads = this.data.olympiads.filter((o) => o.id !== olyId);
     this.data.olympiadSubmissions = this.data.olympiadSubmissions.filter((s) => s.olympiadId !== olyId);
